@@ -1,0 +1,83 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, pick this repository.
+# Free plan: every service is a public web service (private services are paid on Render).
+# Values marked sync: false are asked for in the dashboard the first time (see docs/DEPLOY.md).
+databases:
+  - name: stock-manager-db
+    databaseName: stock
+    plan: free
+
+services:
+  - type: web
+    name: stock-manager-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/gateway/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: AUTH_HOST
+        fromService: { type: web, name: stock-manager-auth, property: host }
+      - key: STOCK_HOST
+        fromService: { type: web, name: stock-manager-stock, property: host }
+      - key: REPORTS_HOST
+        fromService: { type: web, name: stock-manager-reports, property: host }
+
+  - type: web
+    name: stock-manager-auth
+    runtime: docker
+    plan: free
+    dockerfilePath: ./services/Dockerfile
+    dockerContext: .
+    dockerCommand: npm --prefix services/auth start
+    envVars:
+      # the database URL with ?schema=auth at the end, so this service keeps its own tables
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    name: stock-manager-stock
+    runtime: docker
+    plan: free
+    dockerfilePath: ./services/Dockerfile
+    dockerContext: .
+    dockerCommand: npm --prefix services/stock start
+    envVars:
+      # the same database with ?schema=stock at the end
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+
+  - type: web
+    name: stock-manager-reports
+    runtime: docker
+    plan: free
+    dockerfilePath: ./services/Dockerfile
+    dockerContext: .
+    dockerCommand: npm --prefix services/reports start
+    envVars:
+      # the stock service's public address, starting with https://
+      - key: STOCK_URL
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: stock-manager-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
+    envVars:
+      # the gateway's public address, starting with https://
+      - key: API_URL
+        sync: false
