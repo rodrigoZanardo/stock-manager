@@ -1,0 +1,16 @@
+{
+  "name": "@stock/auth",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "start": "prisma migrate deploy && node dist/main.js",
+    "test": "jest"
+  },
+  "dependencies": { "@stock/shared": "*" },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/test"],
+    "moduleNameMapper": { "^@stock/shared$": "<rootDir>/../../packages/shared/src" }
+  }
+}

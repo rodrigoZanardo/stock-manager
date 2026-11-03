@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+  // own output per service: the services share one node_modules, so the default location would collide
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         String   // ADMIN | OPERATOR
+  createdAt    DateTime @default(now())
+}
+
+/// Sign-ins and user creation. Actor is null for the first admin seeded at startup and for failed logins (the attempted email is kept).
+model AuditEntry {
+  id         String   @id @default(uuid())
+  action     String   // USER_CREATED | LOGIN_SUCCEEDED | LOGIN_FAILED
+  details    Json
+  actorId    String?
+  actorEmail String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail, createdAt])
+}
