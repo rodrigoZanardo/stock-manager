@@ -1,0 +1,103 @@
+{
+  "$description": "Stock Manager design tokens. Implemented as CSS variables in web/app/globals.css; keep both in sync.",
+  "color": {
+    "light": {
+      "bg": "#eceeeb",
+      "panel": "#ffffff",
+      "panel-muted": "#f4f5f3",
+      "line": "#d6dad5",
+      "ink": "#17211e",
+      "muted": "#5e6965",
+      "brand": "#1f6f5c",
+      "brand-subtle": "#e3f1ec",
+      "rail": "#17211e",
+      "success": "#2f7d32",
+      "success-subtle": "#e8f3e8",
+      "warning": "#8a6d00",
+      "warning-subtle": "#fff6d6",
+      "danger": "#c2410c",
+      "danger-subtle": "#fdede4",
+      "chart-in": "#1f6f5c",
+      "chart-out": "#b87300",
+      "brand-solid": "#1f6f5c",
+      "brand-solid-hover": "#175747",
+      "signal": "#f2c230",
+      "signal-ink": "#17211e"
+    },
+    "dark": {
+      "bg": "#121816",
+      "panel": "#1a2220",
+      "panel-muted": "#222c29",
+      "line": "#2e3a36",
+      "ink": "#e8edea",
+      "muted": "#9aa6a1",
+      "brand": "#5fc2a4",
+      "brand-subtle": "#133229",
+      "rail": "#0b100e",
+      "success": "#6fcf73",
+      "success-subtle": "#14301a",
+      "warning": "#f2c230",
+      "warning-subtle": "#3a3008",
+      "danger": "#fb923c",
+      "danger-subtle": "#3a1a0c",
+      "chart-in": "#5fc2a4",
+      "chart-out": "#f2c230",
+      "brand-solid": "#1f6f5c",
+      "brand-solid-hover": "#175747",
+      "signal": "#f2c230",
+      "signal-ink": "#17211e"
+    }
+  },
+  "font": {
+    "display": "Barlow Condensed 600",
+    "sans": "Barlow 400/500/600",
+    "mono": "ui-monospace, Cascadia Code, monospace"
+  },
+  "text": {
+    "page-title": {
+      "family": "display",
+      "size": "30px",
+      "weight": 600
+    },
+    "section-title": {
+      "size": "16px",
+      "weight": 600
+    },
+    "body": {
+      "size": "14px",
+      "weight": 400
+    },
+    "caption": {
+      "size": "12px",
+      "weight": 500
+    },
+    "metric": {
+      "family": "display",
+      "size": "36px",
+      "weight": 600,
+      "numeric": "tabular-nums"
+    }
+  },
+  "space": {
+    "unit": "4px",
+    "scale": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32
+    ]
+  },
+  "radius": {
+    "badge": "2px",
+    "control": "4px",
+    "panel": "6px"
+  },
+  "control": {
+    "height-mobile": "40px",
+    "height": "36px",
+    "table-row": "48px",
+    "table-header": "40px"
+  }
+}

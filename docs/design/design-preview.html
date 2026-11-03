@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600&display=swap">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Manager Design</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#eceeeb, #121816); --panel: light-dark(#ffffff, #1a2220); --panel-muted: light-dark(#f4f5f3, #222c29);
+    --line: light-dark(#d6dad5, #2e3a36); --ink: light-dark(#17211e, #e8edea); --muted: light-dark(#5e6965, #9aa6a1);
+    --brand: light-dark(#1f6f5c, #5fc2a4); --brand-solid: #1f6f5c; --signal: #f2c230; --signal-ink: #17211e; --rail: light-dark(#17211e, #0b100e);
+    --success: light-dark(#2f7d32, #6fcf73); --success-subtle: light-dark(#e8f3e8, #14301a);
+    --warning: light-dark(#8a6d00, #f2c230); --warning-subtle: light-dark(#fff6d6, #3a3008);
+    --danger: light-dark(#c2410c, #fb923c); --danger-subtle: light-dark(#fdede4, #3a1a0c);
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 Barlow, ui-sans-serif, system-ui, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px; display: grid; gap: 24px; }
+  h1 { font:600 30px/1.2 'Barlow Condensed', Barlow, sans-serif; margin:0; }
+  h2 { font-size:16px; font-weight:600; margin:0 0 16px; }
+  p { margin:0; color:var(--muted); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:24px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; }
+  .swatch { border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:12px; }
+  .swatch div { height:48px; }
+  .swatch span { display:block; padding:6px 8px; color:var(--muted); }
+  .btn { height:36px; padding:0 16px; border-radius:8px; font:600 14px Barlow, system-ui, sans-serif; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); }
+  .btn:focus-visible, input:focus-visible { outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent); }
+  .primary { background:var(--brand-solid); border-color:transparent; color:#fff; }
+  .danger { color:var(--danger); }
+  label { display:block; font-weight:500; margin-bottom:6px; }
+  input { height:36px; width:100%; max-width:280px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--ink); font:inherit; }
+  .badge { display:inline-flex; gap:6px; align-items:center; border-radius:2px; padding:2px 8px; font-size:12px; font-weight:500; }
+  .badge::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .low { background:var(--danger-subtle); color:var(--danger); }
+  .ok { background:var(--success-subtle); color:var(--success); }
+  .over { background:var(--warning-subtle); color:var(--warning); }
+  table { width:100%; border-collapse:collapse; }
+  th { height:40px; text-align:left; font-size:12px; font-weight:500; color:var(--muted); background:var(--panel-muted); padding:0 16px; }
+  td { height:48px; border-top:1px solid var(--line); padding:0 16px; font-variant-numeric:tabular-nums; }
+  .num { text-align:right; }
+  a { color:var(--brand); font-weight:500; text-decoration:none; }
+  .metric { font:600 36px/1.1 'Barlow Condensed', Barlow, sans-serif; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <div class="row" style="justify-content:space-between">
+    <div><h1>Stock Manager design system</h1><p>Tokens from design-tokens.json, rendered in both themes.</p></div>
+    <button class="btn" id="theme" type="button" aria-pressed="false">Toggle dark</button>
+  </div>
+
+  <section class="card">
+    <h2>Color</h2>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section class="card">
+    <h2>Type and metrics</h2>
+    <div class="row" style="gap:32px">
+      <div><p>Products</p><div class="metric">128</div></div>
+      <div><p>Low stock</p><div class="metric">7</div></div>
+      <div><p>Units in stock</p><div class="metric">4,312</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Controls</h2>
+    <div class="row">
+      <button class="btn primary" type="button">Create product</button>
+      <button class="btn" type="button">Cancel</button>
+      <button class="btn danger" type="button">Delete product</button>
+    </div>
+    <div style="margin-top:16px"><label for="sku">SKU</label><input id="sku" placeholder="KB-001"></div>
+  </section>
+
+  <section class="card" style="padding:0">
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Name</th><th>Status</th><th class="num">Quantity</th><th class="num">Avg. out / day</th><th class="num">Buy now</th></tr></thead>
+        <tbody>
+          <tr><td><a href="#">Mechanical keyboard</a></td><td><span class="badge low">Low stock</span></td><td class="num">2</td><td class="num">1.5</td><td class="num"><b>43</b></td></tr>
+          <tr><td><a href="#">Wireless mouse</a></td><td><span class="badge ok">OK</span></td><td class="num">40</td><td class="num">0.8</td><td class="num">—</td></tr>
+          <tr><td><a href="#">USB-C cable</a></td><td><span class="badge over">Over max</span></td><td class="num">300</td><td class="num">2</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+  const names = ['bg','rail','panel','line','ink','muted','brand','signal','success','warning','danger'];
+  document.getElementById('swatches').innerHTML = names
+    .map((n) => `<div class="swatch"><div style="background:var(--${n})"></div><span>${n}</span></div>`).join('');
+  const btn = document.getElementById('theme');
+  btn.addEventListener('click', () => {
+    const dark = document.documentElement.dataset.theme !== 'dark';
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    btn.setAttribute('aria-pressed', String(dark));
+  });
+</script>
+</body>
+</html>
