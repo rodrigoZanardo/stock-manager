@@ -1,6 +1,6 @@
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { CoreModule, readKeyFile, requireEnv } from '@stock/shared';
+import { CoreModule, readKey, requireEnv } from '@stock/shared';
 import {
   CreateUserUseCase,
   EnsureAdminUseCase,
@@ -24,7 +24,7 @@ const DEMO_ADMIN_PASSWORD = 'change-me-please';
     // the only place that holds the private key: this service issues tokens, the others only verify them
     JwtModule.registerAsync({
       useFactory: () => ({
-        privateKey: readKeyFile('JWT_PRIVATE_KEY_FILE'),
+        privateKey: readKey('JWT_PRIVATE_KEY_FILE', 'JWT_PRIVATE_KEY'),
         // shortcut: a token stays valid until it expires, so a removed user keeps access for up to 8h; add a disabled flag checked by the guard when user removal exists
         signOptions: { algorithm: 'RS256', expiresIn: process.env.JWT_EXPIRES_IN ?? '8h' },
       }),

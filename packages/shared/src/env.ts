@@ -6,5 +6,10 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-/** Reads a PEM key from the file named by the variable, so keys never sit in env values or images. */
-export const readKeyFile = (name: string): string => readFileSync(requireEnv(name), 'utf8');
+/** Reads a PEM key from the file named by `fileVar`, or from `valueVar` when that is set (hosts without shared volumes, like Render). */
+export function readKey(fileVar: string, valueVar: string): string {
+  const value = process.env[valueVar];
+  // some dashboards store the line breaks of a PEM as the two characters backslash and n
+  if (value) return value.replace(/\\n/g, '\n');
+  return readFileSync(requireEnv(fileVar), 'utf8');
+}
