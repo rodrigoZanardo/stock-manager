@@ -1,0 +1,16 @@
+{
+  "name": "@stock/reports",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "test": "jest"
+  },
+  "dependencies": { "@stock/shared": "*" },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/test"],
+    "moduleNameMapper": { "^@stock/shared$": "<rootDir>/../../packages/shared/src" }
+  }
+}
