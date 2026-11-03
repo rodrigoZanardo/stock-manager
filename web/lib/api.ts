@@ -1,0 +1,108 @@
+import 'server-only';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export type Role = 'ADMIN' | 'OPERATOR';
+export type MovementType = 'IN' | 'OUT';
+
+export type StockStatus = 'LOW' | 'OK' | 'OVER';
+export type Product = { id: string; sku: string; name: string; quantity: number; minQuantity: number; maxQuantity: number | null; status: StockStatus };
+export type InventoryRow = {
+  productId: string;
+  sku: string;
+  name: string;
+  quantity: number;
+  minQuantity: number;
+  maxQuantity: number | null;
+  status: StockStatus;
+  totalIn: number;
+  totalOut: number;
+  avgDailyOut: number;
+  daysOfCover: number | null;
+  suggestedQuantity: number;
+  reorderQuantity: number;
+};
+export type Movement = { id: string; type: MovementType; quantity: number; note: string | null; actorEmail: string | null; createdAt: string };
+export type Dashboard = {
+  totalProducts: number;
+  lowStockProducts: number;
+  totalUnits: number;
+  daily: { date: string; in: number; out: number }[];
+  recent: (Movement & { productId: string; productName: string })[];
+};
+
+export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT';
+export type AuthAuditAction = 'USER_CREATED' | 'LOGIN_SUCCEEDED' | 'LOGIN_FAILED';
+export type AuditEntry<A> = { id: string; action: A; productId: string | null; details: Record<string, unknown>; actorEmail: string | null; createdAt: string };
+
+export type ProductInput = { name: string; minQuantity: number; maxQuantity: number | null };
+export type UserRecord = { id: string; email: string; role: Role };
+
+export const TOKEN_COOKIE = 'token';
+export const ROLE_COOKIE = 'role';
+
+export type ErrorParams = Record<string, string | number>;
+/** What a form needs to tell the user why the API refused: a code to translate, its values, and the English fallback. */
+export type ApiFailure = { code?: string; params?: ErrorParams; message: string };
+
+export class ApiError extends Error {
+  constructor(readonly failure: ApiFailure, readonly status: number) {
+    super(failure.message);
+  }
+}
+
+const API_URL = process.env.API_URL ?? 'http://localhost:3031';
+
+async function send(path: string, init: { method?: string; body?: unknown } = {}): Promise<Response> {
+  const token = (await cookies()).get(TOKEN_COOKIE)?.value;
+  const res = await fetch(`${API_URL}${path}`, {
+    method: init.method ?? 'GET',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    cache: 'no-store',
+  });
+  // expired or invalid session: send the user back to sign in (login itself returns 401 as a normal error)
+  if (res.status === 401 && path !== '/auth/login') redirect('/login');
+  if (!res.ok) {
+    const body: { code?: string; params?: ErrorParams; message?: string } = await res.json().catch(() => ({}));
+    throw new ApiError({ code: body.code, params: body.params, message: body.message ?? res.statusText }, res.status);
+  }
+  return res;
+}
+
+/** Path segment for an id from the client: "../users" must stay one segment, not climb the path. */
+const productPath = (id: string) => `/products/${encodeURIComponent(id)}`;
+
+async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+  return (await send(path, init)).json();
+}
+
+export const api = {
+  login: (body: { email: string; password: string }) =>
+    request<{ accessToken: string; role: Role }>('/auth/login', { method: 'POST', body }),
+  users: () => request<UserRecord[]>('/users'),
+  createUser: (body: { email: string; password: string; role: Role }) => request<unknown>('/users', { method: 'POST', body }),
+  dashboard: () => request<Dashboard>('/dashboard'),
+  products: () => request<Product[]>('/products'),
+  product: (id: string) => request<Product>(productPath(id)),
+  movements: (id: string) => request<Movement[]>(`${productPath(id)}/movements`),
+  inventory: () => request<{ aiEnabled: boolean; rows: InventoryRow[] }>('/inventory'),
+  analyzeInventory: (locale: string) =>
+    request<{ analysis: string; generatedAt: string }>('/inventory/analysis', { method: 'POST', body: { locale } }),
+  createProduct: (body: ProductInput & { sku: string }) =>
+    request<Product>('/products', { method: 'POST', body }),
+  updateProduct: (id: string, body: ProductInput) =>
+    request<Product>(productPath(id), { method: 'PATCH', body }),
+  deleteProduct: async (id: string) => {
+    await send(productPath(id), { method: 'DELETE' });
+  },
+  move: (id: string, body: { type: MovementType; quantity: number; note?: string }) =>
+    request<Product>(`${productPath(id)}/movements`, { method: 'POST', body }),
+  auditStock: () => request<AuditEntry<StockAuditAction>[]>('/audit/stock?limit=100'),
+  auditAuth: () => request<AuditEntry<AuthAuditAction>[]>('/audit/auth?limit=100'),
+};
+
+export async function currentRole(): Promise<Role | undefined> {
+  const role = (await cookies()).get(ROLE_COOKIE)?.value;
+  return role === 'ADMIN' || role === 'OPERATOR' ? role : undefined;
+}

@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens: a warehouse vocabulary (concrete floor, forklift green, safety yellow).
+ * Source of truth: docs/design/design-tokens.json, rationale in docs/design/DESIGN.md.
+ * Each token is declared once with light-dark(light, dark); the theme follows the OS
+ * unless <html data-theme="light|dark"> forces one.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#eceeeb, #121816);
+  --panel: light-dark(#ffffff, #1a2220);
+  --panel-muted: light-dark(#f4f5f3, #222c29);
+  --line: light-dark(#d6dad5, #2e3a36);
+  --ink: light-dark(#17211e, #e8edea);
+  --muted: light-dark(#5e6965, #9aa6a1);
+  --brand: light-dark(#1f6f5c, #5fc2a4);
+  --brand-subtle: light-dark(#e3f1ec, #133229);
+  /* side rail stays dark in both themes, like warehouse signage */
+  --rail: light-dark(#17211e, #0b100e);
+  /* filled buttons: white text stays above 4.5:1 in both themes */
+  --brand-solid: #1f6f5c;
+  --brand-solid-hover: #175747;
+  --signal: #f2c230;
+  --signal-ink: #17211e;
+  --success: light-dark(#2f7d32, #6fcf73);
+  --success-subtle: light-dark(#e8f3e8, #14301a);
+  --warning: light-dark(#8a6d00, #f2c230);
+  --warning-subtle: light-dark(#fff6d6, #3a3008);
+  --danger: light-dark(#c2410c, #fb923c);
+  --danger-subtle: light-dark(#fdede4, #3a1a0c);
+  --chart-in: light-dark(#1f6f5c, #5fc2a4);
+  --chart-out: light-dark(#b87300, #f2c230);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-muted: var(--panel-muted);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-rail: var(--rail);
+  --color-brand-solid: var(--brand-solid);
+  --color-brand-solid-hover: var(--brand-solid-hover);
+  --color-signal: var(--signal);
+  --color-signal-ink: var(--signal-ink);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Shared building blocks, so pages do not repeat long class lists. Mobile first: base styles are for phones. */
+@utility card { @apply rounded-md border border-line bg-panel p-4 sm:p-6; }
+@utility label { @apply mb-1.5 block text-sm font-medium text-ink; }
+@utility input { @apply h-10 w-full rounded border border-line bg-panel px-3 text-base text-ink placeholder:text-muted outline-none focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/25 aria-invalid:border-danger read-only:bg-panel-muted read-only:text-muted disabled:opacity-60 sm:h-9 sm:text-sm; }
+@utility btn { @apply inline-flex h-10 items-center justify-center gap-2 rounded px-4 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-brand/35 disabled:pointer-events-none disabled:opacity-50 sm:h-9; }
+@utility btn-primary { @apply btn bg-brand-solid text-white hover:bg-brand-solid-hover; }
+@utility btn-secondary { @apply btn border border-line bg-panel text-ink hover:bg-panel-muted; }
+@utility btn-danger { @apply btn border border-line bg-panel text-danger hover:bg-danger-subtle; }
+@utility link { @apply rounded-sm font-medium text-brand underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-brand/35; }
+@utility nav-link { @apply flex h-10 shrink-0 items-center rounded px-3 text-sm font-medium text-white/70 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-3 focus-visible:ring-signal aria-[current=page]:bg-white/10 aria-[current=page]:text-white aria-[current=page]:shadow-[inset_3px_0_0_var(--signal)]; }
+@utility th { @apply h-10 whitespace-nowrap border-b border-line px-4 text-left text-xs font-semibold text-muted; }
+@utility td { @apply h-12 border-t border-line px-4 text-sm; }
+/* printed-tag look: nearly square corners */
+@utility badge { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 text-xs font-semibold; }
+@utility page-title { @apply font-display text-3xl font-semibold leading-tight; }
+@utility metric { @apply font-display text-4xl font-semibold tabular-nums; }
