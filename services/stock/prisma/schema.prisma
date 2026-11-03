@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+  // own output per service: the services share one node_modules, so the default location would collide
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String     @id @default(uuid())
+  sku         String     @unique
+  name        String
+  quantity    Int        @default(0)
+  minQuantity Int        @default(0)
+  maxQuantity Int?
+  createdAt   DateTime   @default(now())
+  movements   Movement[]
+}
+
+model Movement {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  type      String   // IN | OUT
+  quantity  Int
+  note       String?
+  actorId    String?
+  actorEmail String?
+  createdAt  DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
+}
+
+/// One row per write. No relation to Product on purpose: a deleted product keeps its trail.
+model AuditEntry {
+  id         String   @id @default(uuid())
+  action     String   // PRODUCT_CREATED | PRODUCT_UPDATED | PRODUCT_DELETED | STOCK_IN | STOCK_OUT
+  productId  String?
+  details    Json
+  actorId    String
+  actorEmail String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
