@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { Roles, STOCK_STATUSES, type StockStatus } from '@stock/shared';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponse, Roles, STOCK_STATUSES, type StockStatus } from '@stock/shared';
 import { IsIn } from 'class-validator';
 import { AnalyzeInventoryUseCase, GetInventoryUseCase, InventoryAdvisor, InventoryRow, USAGE_WINDOW_DAYS } from '../application/inventory.use-case';
 
@@ -45,6 +45,10 @@ export class InventoryController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'Inventory report with suggested reorder quantities (any role)' })
+  @ApiResponse({ status: 200, type: InventoryResponse })
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(503, 'The stock service is unavailable')
   async get(): Promise<InventoryResponse> {
     return { aiEnabled: this.advisor.enabled, rows: await this.inventory.execute() };
   }
@@ -53,6 +57,12 @@ export class InventoryController {
   @Roles('ADMIN')
   @Post('analysis')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Restock analysis written by Claude from the inventory report (admin only)' })
+  @ApiResponse({ status: 200, type: AnalysisResponse })
+  @ApiErrorResponse(400, 'locale is not en or pt')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is not an admin')
+  @ApiErrorResponse(503, 'Analysis is not configured on this server, or the AI service failed')
   analyze(@Body() dto: AnalyzeDto): Promise<AnalysisResponse> {
     return this.analyzer.execute(dto.locale);
   }

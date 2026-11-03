@@ -7,3 +7,4 @@ export * from './core.module';
 export * from './env';
 export * from './errors';
 export * from './prisma-error';
+export * from './swagger';

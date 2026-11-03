@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { type Actor, CurrentUser, Roles } from '@stock/shared';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { type Actor, ApiErrorResponse, CurrentUser, Roles } from '@stock/shared';
 import {
   CreateProductUseCase,
   DeleteProductUseCase,
@@ -38,23 +38,42 @@ export class ProductController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'List products with their stock status, by name' })
+  @ApiResponse({ status: 200, type: [ProductResponse] })
+  @ApiErrorResponse(401, 'Missing or expired token')
   async list(): Promise<ProductResponse[]> {
     return (await this.listProducts.execute()).map(toResponse);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get one product' })
+  @ApiResponse({ status: 200, type: ProductResponse })
+  @ApiErrorResponse(400, 'The id is not a UUID')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(404, 'Product not found')
   async get(@Param('id', ParseUUIDPipe) id: string): Promise<ProductResponse> {
     return toResponse(await this.getProduct.execute(id));
   }
 
   @Roles('ADMIN')
   @Post()
+  @ApiOperation({ summary: 'Create a product with zero stock (admin only)' })
+  @ApiResponse({ status: 201, type: ProductResponse, description: 'Product created' })
+  @ApiErrorResponse(400, 'Invalid input, or the SKU is already used')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is not an admin')
   async create(@Body() dto: CreateProductDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.createProduct.execute(dto, actor));
   }
 
   @Roles('ADMIN')
   @Patch(':id')
+  @ApiOperation({ summary: 'Change name and minimum or maximum (admin only). The SKU and the quantity do not change here.' })
+  @ApiResponse({ status: 200, type: ProductResponse })
+  @ApiErrorResponse(400, 'Invalid input, or the maximum is not above the minimum')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is not an admin')
+  @ApiErrorResponse(404, 'Product not found')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateProductDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.updateProduct.execute({ id, ...dto }, actor));
   }
@@ -62,16 +81,32 @@ export class ProductController {
   @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a product that has no stock movements (admin only)' })
+  @ApiResponse({ status: 204, description: 'Deleted' })
+  @ApiErrorResponse(400, 'The product has stock movements, so it cannot be deleted')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is not an admin')
+  @ApiErrorResponse(404, 'Product not found')
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: Actor): Promise<void> {
     return this.deleteProduct.execute(id, actor);
   }
 
   @Get(':id/movements')
+  @ApiOperation({ summary: 'Movement history of a product, newest first, at most 200 entries' })
+  @ApiResponse({ status: 200, type: [MovementResponse] })
+  @ApiErrorResponse(400, 'The id is not a UUID')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(404, 'Product not found')
   movements(@Param('id', ParseUUIDPipe) id: string): Promise<MovementResponse[]> {
     return this.listMovements.execute(id);
   }
 
   @Post(':id/movements')
+  @ApiOperation({ summary: 'Register a stock movement: IN adds units, OUT removes them' })
+  @ApiResponse({ status: 201, type: ProductResponse, description: 'Movement registered; returns the product with its new quantity' })
+  @ApiErrorResponse(400, 'Quantity is not a whole number above zero, there is not enough stock, or the stock changed while saving')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(404, 'Product not found')
   async move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.registerMovement.execute({ productId: id, ...dto }, actor));
   }

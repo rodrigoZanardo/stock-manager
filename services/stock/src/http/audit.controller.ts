@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { AuditQuery, Roles } from '@stock/shared';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponse, AuditQuery, Roles } from '@stock/shared';
 import { AUDIT_ACTIONS, type AuditAction } from '../application/product-repository';
 import { ListAuditUseCase } from '../application/product.use-cases';
 
@@ -21,6 +21,11 @@ export class AuditController {
 
   @Roles('ADMIN')
   @Get()
+  @ApiOperation({ summary: 'Stock write history, newest first (admin only)' })
+  @ApiResponse({ status: 200, type: [AuditEntryResponse] })
+  @ApiErrorResponse(400, 'The limit is not a whole number from 1 to 200')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is not an admin')
   list(@Query() query: AuditQuery): Promise<AuditEntryResponse[]> {
     return this.audit.execute(query.limit);
   }

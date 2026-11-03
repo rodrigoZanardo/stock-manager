@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiBearerAuth, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { MOVEMENT_TYPES, type MovementType } from '@stock/shared';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponse, MOVEMENT_TYPES, type MovementType } from '@stock/shared';
 import { GetDashboardUseCase } from '../application/dashboard.use-case';
 
 class DailyTotals {
@@ -34,6 +34,10 @@ export class DashboardController {
   constructor(private readonly dashboard: GetDashboardUseCase) {}
 
   @Get()
+  @ApiOperation({ summary: 'Dashboard numbers and the last 14 days of stock in and out (any role)' })
+  @ApiResponse({ status: 200, type: DashboardResponse })
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(503, 'The stock service is unavailable')
   get(): Promise<DashboardResponse> {
     return this.dashboard.execute();
   }
