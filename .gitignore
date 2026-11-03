@@ -1,0 +1,23 @@
+node_modules
+dist
+.next
+.env
+.env.*
+!.env.example
+
+# generated Prisma clients and local JWT keys
+generated
+.keys
+
+# personal agent settings
+.claude/settings.local.json
+
+# browser automation output
+.playwright-mcp
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Playwright output
+test-results/
+playwright-report/

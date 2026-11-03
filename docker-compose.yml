@@ -1,0 +1,83 @@
+# Local demo stack. Values here are for a laptop; real deployments set them in the host's secret store.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # not published: only the services reach it, on the Docker network (demo credentials must never face the internet)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 2s
+      retries: 15
+
+  # generates the RS256 key pair once into a shared volume
+  keys:
+    image: node:22-alpine
+    command: ["node", "/scripts/dev-keys.mjs", "/private", "/public"]
+    volumes:
+      - ./scripts:/scripts:ro
+      - auth-keys:/private
+      - jwt-public:/public
+
+  auth:
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: auth } }
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/auth
+      # local demo: allows the published demo admin password; the image itself defaults to production and refuses it
+      NODE_ENV: development
+      JWT_PRIVATE_KEY_FILE: /keys/private.pem
+      JWT_PUBLIC_KEY_FILE: /public/public.pem
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-please}
+    volumes: [auth-keys:/keys:ro, jwt-public:/public:ro]
+    ports: ["127.0.0.1:3032:3000"] # Swagger for local development; public traffic goes through the gateway
+    depends_on:
+      db: { condition: service_healthy }
+      keys: { condition: service_completed_successfully }
+
+  stock:
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: stock } }
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/stock
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+    volumes: [jwt-public:/keys:ro]
+    ports: ["127.0.0.1:3033:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+      keys: { condition: service_completed_successfully }
+
+  reports:
+    build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: reports } }
+    environment:
+      STOCK_URL: http://stock:3000
+      JWT_PUBLIC_KEY_FILE: /keys/public.pem
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes: [jwt-public:/keys:ro]
+    ports: ["127.0.0.1:3034:3000"]
+    depends_on:
+      keys: { condition: service_completed_successfully }
+      stock: { condition: service_started }
+
+  gateway:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./docker/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports: ["3031:3031"]
+    depends_on: [auth, stock, reports]
+
+  web:
+    build: ./web
+    environment:
+      API_URL: http://gateway:3031
+      # the demo runs over plain http on localhost, so the session cookie cannot require https
+      COOKIE_SECURE: "false"
+    ports: ["3030:3030"]
+    depends_on: [gateway]
+
+volumes:
+  # the private key lives only in auth-keys (auth service); the public key is shared with every service
+  auth-keys:
+  jwt-public:
