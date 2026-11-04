@@ -139,7 +139,7 @@ Use cases: create, list, get, update and delete products, register and list move
 
 ## Works with Live Orders
 
-[Live Orders](https://github.com/rodrigoZanardo/live-orders) is a companion live order board. When one of its orders reaches `DELIVERED`, it calls `POST /webhooks/live-orders` on the stock service (through the gateway) and every item lowers the stock of the product with the same SKU, as one all-or-nothing change. The call is signed with HMAC-SHA256 (`LIVE_ORDERS_WEBHOOK_SECRET`, timestamp window of 5 minutes) and repeating an event (the signed `seq` in the body) changes nothing. Set `LIVE_ORDERS_WEBHOOK_SECRET` (example in `.env.example`) to the secret of the Live Orders webhook subscription; until then the route answers 503. If two different orders take the same stock at once, the service retries once and otherwise answers an error, so the sender must retry (Live Orders does). An unknown SKU or not enough stock is refused and nothing is written.
+[Live Orders](https://github.com/rodrigoZanardo/live-orders) is a companion live order board. When one of its orders reaches `DELIVERED`, it calls `POST /webhooks/live-orders` on the stock service (through the gateway) and every item lowers the stock of the product with the same SKU, as one all-or-nothing change. The call is signed with HMAC-SHA256 (`LIVE_ORDERS_WEBHOOK_SECRET`, timestamp window of 5 minutes) and repeating an event (the signed `seq` in the body) changes nothing. Set `LIVE_ORDERS_WEBHOOK_SECRET` (example in `.env.example`) to the secret of the Live Orders webhook subscription; until then the route answers 503. If two different orders take the same stock at once, the service retries once and otherwise answers an error, so the sender must retry (Live Orders does). A delivered order already left the counter, so the event is never refused for stock: each SKU lowers what exists (down to zero), the movement note records the shortfall, and the answer lists it in `shortfalls`. An unknown SKU is skipped. Live Orders also reads the product list for its parts catalog, signed in as a read-only `VIEWER` account.
 
 ## Technical decisions
 
@@ -186,4 +186,4 @@ Tests run on every push with GitHub Actions. Rules for contributors and AI codin
 - [x] Design system with light and dark themes ([docs/design](docs/design/DESIGN.md))
 - [x] Split into microservices: auth, stock, reports
 - [x] Audit trail: who changed what and when (products, stock, users, logins) and one structured log line per request
-- [ ] Online demo
+- [x] Online demo on Render (see the top of this page)
