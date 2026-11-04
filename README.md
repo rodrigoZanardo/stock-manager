@@ -131,7 +131,7 @@ Use cases: create, list, get, update and delete products, register and list move
 - Forms use react-hook-form + zod for instant feedback, but when the API refuses something they show its reason, translated from the error code. The rules stay in the backend.
 - English and Portuguese with next-intl. Every list has loading, error and empty states. Low stock is shown as text, not color alone.
 
-![Product page](docs/product.png)
+![Products with reserved and available stock](docs/product.png)
 
 ![Users](docs/users.png)
 
