@@ -22,6 +22,8 @@ docker compose up --build
 | Web app | http://localhost:3030 |
 | API docs (Swagger, try requests live) | http://localhost:3032/docs (auth) · http://localhost:3033/docs (stock) · http://localhost:3034/docs (reports) |
 
+Deploying it yourself on Render (free plan): see [docs/DEPLOY.md](docs/DEPLOY.md).
+
 Sign in with `admin@example.com` / `change-me-please`. `ADMIN_EMAIL` and `ADMIN_PASSWORD` set the first admin only, on the first start. Changing them later does not change an existing admin (see [.env.example](.env.example)).
 
 <details>
@@ -127,6 +129,8 @@ Use cases: create, list, get, update and delete products, register and list move
 - English and Portuguese with next-intl. Every list has loading, error and empty states. Low stock is shown as text, not color alone.
 
 ![Product page](docs/product.png)
+
+![Users](docs/users.png)
 
 </details>
 
