@@ -42,6 +42,7 @@ services:
     build: { context: ., dockerfile: services/Dockerfile, args: { SERVICE: stock } }
     environment:
       DATABASE_URL: postgresql://app:app@db:5432/stock
+      LIVE_ORDERS_WEBHOOK_SECRET: ${LIVE_ORDERS_WEBHOOK_SECRET:-dev-live-orders-secret}
       JWT_PUBLIC_KEY_FILE: /keys/public.pem
     volumes: [jwt-public:/keys:ro]
     ports: ["127.0.0.1:3033:3000"]

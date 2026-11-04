@@ -8,6 +8,7 @@ server {
   location /audit/auth  { proxy_pass https://${AUTH_HOST}.onrender.com; }
   location /products    { proxy_pass https://${STOCK_HOST}.onrender.com; }
   location /movements   { proxy_pass https://${STOCK_HOST}.onrender.com; }
+  location /webhooks/live-orders { proxy_pass https://${STOCK_HOST}.onrender.com; }
   location /audit/stock { proxy_pass https://${STOCK_HOST}.onrender.com; }
   location /dashboard   { proxy_pass https://${REPORTS_HOST}.onrender.com; }
   location /inventory   { proxy_pass https://${REPORTS_HOST}.onrender.com; }

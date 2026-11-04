@@ -53,6 +53,9 @@ services:
         sync: false
       - key: JWT_PUBLIC_KEY
         sync: false
+      # shared with the Live Orders webhook subscription that points here
+      - key: LIVE_ORDERS_WEBHOOK_SECRET
+        sync: false
 
   - type: web
     name: stock-manager-reports
