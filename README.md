@@ -9,7 +9,7 @@
 Inventory control app: products, stock in and out, low-stock alerts, login with roles and a dashboard.
 A full-stack portfolio project, written from scratch, with the business rules in a tested domain layer.
 
-**Live demo:** https://stock-manager-web-v2s6.onrender.com (free plan: the first visit after a quiet period can take about a minute)
+**Live demo:** https://stock-manager-web-v2s6.onrender.com, sign in with `demo@example.com` / `demo-stock-2026`. Free plan: the first visit after a quiet period can take about a minute, and the demo data is shared by every visitor.
 
 ![Dashboard](docs/dashboard.png)
 
