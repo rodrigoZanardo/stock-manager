@@ -23,7 +23,9 @@
     "required": "Obrigatório.",
     "wholeNumber": "Use um número inteiro igual ou maior que 0.",
     "positive": "Use um número inteiro maior que 0.",
-    "tooLong": "Use no máximo {max} caracteres."
+    "tooLong": "Use no máximo {max} caracteres.",
+    "showPassword": "Mostrar senha",
+    "hidePassword": "Ocultar senha"
   },
   "login": {
     "title": "Entrar",

@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { createUser } from '@/app/actions';
 import { Field, FormMessage, useActionResult } from './form';
+import { PasswordInput } from './PasswordInput';
 
 export function UserForm() {
   const t = useTranslations();
@@ -30,7 +31,7 @@ export function UserForm() {
         {(a) => <input {...a} type="email" autoComplete="off" {...register('email')} />}
       </Field>
       <Field label={t('users.password')} error={formState.errors.password?.message} hint={t('users.passwordHint')}>
-        {(a) => <input {...a} type="password" autoComplete="new-password" {...register('password')} />}
+        {(a) => <PasswordInput {...a} autoComplete="new-password" {...register('password')} />}
       </Field>
       <Field label={t('users.role')}>
         {(a) => (

@@ -23,7 +23,9 @@
     "required": "Required.",
     "wholeNumber": "Use a whole number of 0 or more.",
     "positive": "Use a whole number greater than 0.",
-    "tooLong": "Use at most {max} characters."
+    "tooLong": "Use at most {max} characters.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "login": {
     "title": "Sign in",

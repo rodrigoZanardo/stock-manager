@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { login } from '@/app/actions';
 import { Field, FormMessage, useActionResult } from './form';
+import { PasswordInput } from './PasswordInput';
 
 export function LoginForm() {
   const t = useTranslations();
@@ -22,7 +23,7 @@ export function LoginForm() {
         {(a) => <input {...a} type="email" autoComplete="username" {...register('email')} />}
       </Field>
       <Field label={t('login.password')} error={formState.errors.password?.message}>
-        {(a) => <input {...a} type="password" autoComplete="current-password" {...register('password')} />}
+        {(a) => <PasswordInput {...a} autoComplete="current-password" {...register('password')} />}
       </Field>
       <FormMessage result={result} />
       <button type="submit" className="btn-primary w-full" disabled={formState.isSubmitting}>
