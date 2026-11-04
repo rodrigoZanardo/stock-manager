@@ -18,5 +18,7 @@ server {
   location /dashboard   { proxy_pass $reports; }
   location /inventory   { proxy_pass $reports; }
 
+  # the root is what people open by hand: say what this host is instead of a bare 404
+  location = / { default_type application/json; return 200 '{"service":"stock-manager-gateway","app":"https://stock-manager-web-v2s6.onrender.com","docs":["https://stock-manager-auth.onrender.com/docs","https://stock-manager-stock.onrender.com/docs","https://stock-manager-reports.onrender.com/docs"]}'; }
   location / { return 404; }
 }
