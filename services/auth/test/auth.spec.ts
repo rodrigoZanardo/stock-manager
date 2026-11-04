@@ -10,6 +10,7 @@ import {
   UserRepository,
 } from '../src/application/auth.use-cases';
 import { User } from '../src/domain/user';
+import { AppModule } from '../src/app.module';
 import { ScryptPasswordHasher } from '../src/infra/auth.services';
 
 class InMemoryUsers extends UserRepository {
@@ -165,5 +166,33 @@ describe('users and login', () => {
   it('records nothing when creating a user is rejected', async () => {
     await expect(createUser.execute({ email: 'not-an-email', password: '12345678', role: 'OPERATOR' }, admin)).rejects.toMatchObject({ code: 'EMAIL_INVALID' });
     expect(repo.audit).toEqual([]);
+  });
+});
+
+describe('bootstrap seeding', () => {
+  const keys = ['ADMIN_EMAIL', 'ADMIN_PASSWORD', 'DEMO_EMAIL', 'DEMO_PASSWORD', 'VIEWER_EMAIL', 'VIEWER_PASSWORD'] as const;
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  afterEach(() => {
+    for (const k of keys) {
+      const v = saved[k];
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+
+  it('creates the demo user as OPERATOR and the viewer as VIEWER', async () => {
+    Object.assign(process.env, {
+      ADMIN_EMAIL: 'admin@example.com', ADMIN_PASSWORD: 'admin-secret',
+      DEMO_EMAIL: 'demo@example.com', DEMO_PASSWORD: 'demo-secret',
+      VIEWER_EMAIL: 'viewer@example.com', VIEWER_PASSWORD: 'viewer-secret',
+    });
+    const repo = new InMemoryUsers();
+    const ensure = new EnsureUserUseCase(repo, new CreateUserUseCase(repo, new ScryptPasswordHasher()));
+    await new AppModule(ensure).onApplicationBootstrap();
+    expect(Object.fromEntries(repo.items.map((u) => [u.email, u.role]))).toEqual({
+      'admin@example.com': 'ADMIN',
+      'demo@example.com': 'OPERATOR',
+      'viewer@example.com': 'VIEWER',
+    });
   });
 });
