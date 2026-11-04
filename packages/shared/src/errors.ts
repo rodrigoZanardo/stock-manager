@@ -27,6 +27,10 @@ const CATALOG = {
   STOCK_UNAVAILABLE: { kind: 'unavailable', message: 'Stock data is unavailable right now. Try again in a moment.' },
   AI_NOT_CONFIGURED: { kind: 'unavailable', message: 'Inventory analysis is not enabled on this server.' },
   AI_FAILED: { kind: 'unavailable', message: 'Inventory analysis is unavailable right now. Try again later.' },
+  // signed webhooks
+  WEBHOOK_SIGNATURE_INVALID: { kind: 'unauthorized', message: 'Webhook signature is missing or wrong.' },
+  WEBHOOK_TOO_OLD: { kind: 'unauthorized', message: 'Webhook timestamp is more than 5 minutes away from the server clock.' },
+  WEBHOOK_NOT_CONFIGURED: { kind: 'unavailable', message: 'Webhooks are not enabled on this server.' },
   // request shape, checked by the DTOs before any rule runs
   INVALID_INPUT: { kind: 'rule', message: 'Invalid input: {details}' },
 } as const satisfies Record<string, { kind: ErrorKind; message: string }>;
