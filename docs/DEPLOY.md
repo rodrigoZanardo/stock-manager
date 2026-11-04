@@ -71,3 +71,13 @@ After setting `API_URL`, deploy `stock-manager-web` again.
 - Each service sleeps after about 15 minutes without requests. The first visit after that is slow.
 - Check Render's current page for the free Postgres limits before relying on it for a long-running demo.
 - Demo data is kept only as long as the database lives. To reset, delete the database and create it again.
+
+## Optional: auto parts for the demo
+
+Creates about 18 auto parts that are missing (filters, brake pads, spark plugs...) with their starting stock, so the Live Orders parts catalog has something to show. Run it once from your computer:
+
+```bash
+GATEWAY_URL=https://stock-manager-gateway.onrender.com ADMIN_EMAIL=... ADMIN_PASSWORD=... node scripts/seed-demo-parts.mjs
+```
+
+Running it again skips the SKUs that already exist.
