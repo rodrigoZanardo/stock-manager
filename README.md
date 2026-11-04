@@ -136,6 +136,10 @@ Use cases: create, list, get, update and delete products, register and list move
 
 </details>
 
+## Works with Live Orders
+
+[Live Orders](https://github.com/rodrigoZanardo/live-orders) is a companion live order board. When one of its orders reaches `DELIVERED`, it calls `POST /webhooks/live-orders` on the stock service (through the gateway) and every item lowers the stock of the product with the same SKU, as one all-or-nothing change. The call is signed with HMAC-SHA256 (`LIVE_ORDERS_WEBHOOK_SECRET`, timestamp window of 5 minutes) and repeating an `X-Event-Seq` changes nothing. An unknown SKU or not enough stock is refused and nothing is written.
+
 ## Technical decisions
 
 | Decision | Why |
