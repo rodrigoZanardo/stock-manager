@@ -2,16 +2,21 @@
 server {
   listen ${PORT};
   proxy_ssl_server_name on;
+  # Render hosts change IP on redeploy; a variable in proxy_pass makes nginx look them up again instead of keeping the startup IP
+  resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
+  set $auth    https://${AUTH_HOST}.onrender.com;
+  set $stock   https://${STOCK_HOST}.onrender.com;
+  set $reports https://${REPORTS_HOST}.onrender.com;
 
-  location /auth/       { proxy_pass https://${AUTH_HOST}.onrender.com; }
-  location /users       { proxy_pass https://${AUTH_HOST}.onrender.com; }
-  location /audit/auth  { proxy_pass https://${AUTH_HOST}.onrender.com; }
-  location /products    { proxy_pass https://${STOCK_HOST}.onrender.com; }
-  location /movements   { proxy_pass https://${STOCK_HOST}.onrender.com; }
-  location /webhooks/live-orders { proxy_pass https://${STOCK_HOST}.onrender.com; }
-  location /audit/stock { proxy_pass https://${STOCK_HOST}.onrender.com; }
-  location /dashboard   { proxy_pass https://${REPORTS_HOST}.onrender.com; }
-  location /inventory   { proxy_pass https://${REPORTS_HOST}.onrender.com; }
+  location /auth/       { proxy_pass $auth; }
+  location /users       { proxy_pass $auth; }
+  location /audit/auth  { proxy_pass $auth; }
+  location /products    { proxy_pass $stock; }
+  location /movements   { proxy_pass $stock; }
+  location /webhooks/live-orders { proxy_pass $stock; }
+  location /audit/stock { proxy_pass $stock; }
+  location /dashboard   { proxy_pass $reports; }
+  location /inventory   { proxy_pass $reports; }
 
   location / { return 404; }
 }
