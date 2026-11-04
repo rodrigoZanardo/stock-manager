@@ -2,7 +2,7 @@ import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_FILTER, NestFactory } from '@nestjs/core';
 import { AppErrorFilter, invalidInput } from '@stock/shared';
 import { ProductRepository } from '../src/application/product-repository';
-import { ApplyDeliveredOrderUseCase } from '../src/application/webhook.use-cases';
+import { ApplyOrderEventUseCase } from '../src/application/webhook.use-cases';
 import { Product } from '../src/domain/product';
 import { signWebhook } from '../src/domain/webhook-signature';
 import { WebhookController } from '../src/http/webhook.controller';
@@ -16,7 +16,7 @@ const repo = new InMemoryRepo();
   controllers: [WebhookController],
   providers: [
     WebhookSignatureGuard,
-    ApplyDeliveredOrderUseCase,
+    ApplyOrderEventUseCase,
     { provide: ProductRepository, useValue: repo },
     { provide: APP_FILTER, useClass: AppErrorFilter },
   ],
@@ -91,7 +91,7 @@ describe('POST /webhooks/live-orders over HTTP', () => {
     expect([res.status, res.body.code]).toEqual([401, 'WEBHOOK_TOO_OLD']);
   });
 
-  it.each([['ORDER_CREATED', undefined], ['ORDER_LATE', undefined], ['ORDER_STATUS_CHANGED', 'READY']])('ignores %s %s', async (type, toStatus) => {
+  it.each([['ORDER_LATE', undefined], ['ORDER_STATUS_CHANGED', 'READY']])('ignores %s %s', async (type, toStatus) => {
     expect(await post(event(type, toStatus))).toEqual({ status: 200, body: { ignored: true } });
     expect(repo.items[0]?.quantity).toBe(10);
   });

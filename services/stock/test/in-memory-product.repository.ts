@@ -1,4 +1,4 @@
-import { AuditRecord, ProductMovement, ProductRepository } from '../src/application/product-repository';
+import { AuditRecord, OrderLine, ProductMovement, ProductRepository } from '../src/application/product-repository';
 import { MovementType, Product } from '../src/domain/product';
 
 export class InMemoryRepo extends ProductRepository {
@@ -30,10 +30,30 @@ export class InMemoryRepo extends ProductRepository {
   }
   processed = new Set<string>();
   async isEventProcessed(seq: string) { return this.processed.has(seq); }
-  async saveOrderDelivery(seq: string, lines: { product: Product; quantity: number; note: string; audit: AuditRecord }[]) {
+  /** orderId -> productId -> quantity */
+  reservations = new Map<string, Map<string, number>>();
+  async saveOrderReservation(seq: string, order: { id: string; number: number }, lines: OrderLine[]) {
+    if (this.processed.has(seq)) return 'duplicate' as const;
+    this.processed.add(seq);
+    if (this.processed.has(`closed:${order.id}`)) { for (const l of lines) if (l.quantity > 0) l.product.release(l.quantity); return 'closed' as const; }
+    const held = this.reservations.get(order.id) ?? new Map<string, number>();
+    for (const l of lines) {
+      if (l.quantity > 0) held.set(l.product.id, l.quantity);
+      this.audit.push(l.audit);
+    }
+    this.reservations.set(order.id, held);
+    return 'saved' as const;
+  }
+  async saveOrderClosing(seq: string, orderId: string, releaseAudit: (r: { productId: string; quantity: number }) => AuditRecord, deliveries: OrderLine[]) {
     if (this.processed.has(seq)) return false;
     this.processed.add(seq);
-    for (const l of lines) {
+    this.processed.add(`closed:${orderId}`);
+    for (const [productId, quantity] of this.reservations.get(orderId) ?? []) {
+      this.items.find((p) => p.id === productId)?.release(quantity);
+      this.audit.push(releaseAudit({ productId, quantity }));
+    }
+    this.reservations.delete(orderId);
+    for (const l of deliveries) {
       if (l.quantity > 0) await this.saveMovement(l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit);
       else this.audit.push(l.audit);
     }

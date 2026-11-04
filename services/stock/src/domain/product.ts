@@ -5,7 +5,8 @@ export type { MovementType, StockStatus };
 /** What an admin can edit. `maxQuantity: null` means no upper limit. */
 export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null };
 
-type ProductProps = { id: string; sku: string; name: string; quantity: number; minQuantity: number; maxQuantity: number | null };
+/** `reserved`: units promised to open Live Orders orders; still on the shelf, but not free to take. */
+type ProductProps = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null };
 
 /** Stock rules live here, not in the controller or the database. */
 export class Product {
@@ -14,7 +15,7 @@ export class Product {
   static create(input: { id: string; sku: string } & ProductDetails): Product {
     const sku = input.sku.trim().toUpperCase();
     if (!/^[A-Z0-9-]{3,32}$/.test(sku)) throw new AppError('SKU_INVALID');
-    return new Product({ id: input.id, sku, quantity: 0, ...validDetails(input) });
+    return new Product({ id: input.id, sku, quantity: 0, reserved: 0, ...validDetails(input) });
   }
 
   /** SKU and quantity are not editable: quantity only changes through movements. Omitting the maximum keeps it; null removes it. */
@@ -32,20 +33,46 @@ export class Product {
   get sku() { return this.props.sku; }
   get name() { return this.props.name; }
   get quantity() { return this.props.quantity; }
+  get reserved() { return this.props.reserved; }
+  /** Never below zero: a delivery may take reserved units of other orders when the shelf is short. */
+  get available() { return Math.max(0, this.props.quantity - this.props.reserved); }
   get minQuantity() { return this.props.minQuantity; }
   get maxQuantity() { return this.props.maxQuantity; }
+  // physical quantity on purpose: reserved units are still on the shelf, and a cancel gives them back, so restocking follows what is there
   get isLowStock() { return this.props.quantity <= this.props.minQuantity; }
   get status(): StockStatus {
     if (this.isLowStock) return 'LOW';
     return this.props.maxQuantity !== null && this.props.quantity > this.props.maxQuantity ? 'OVER' : 'OK';
   }
 
+  /** A user's movement: OUT may not take units reserved for orders. */
   move(type: MovementType, quantity: number): void {
-    if (!Number.isInteger(quantity) || quantity <= 0) throw new AppError('QUANTITY_INVALID');
-    if (type === 'OUT' && quantity > this.props.quantity)
-      throw new AppError('NOT_ENOUGH_STOCK', { available: this.props.quantity, requested: quantity });
+    checkQuantity(quantity);
+    if (type === 'OUT' && quantity > this.available)
+      throw new AppError('NOT_ENOUGH_STOCK', { available: this.available, requested: quantity });
     this.props.quantity += type === 'IN' ? quantity : -quantity;
   }
+
+  /** A delivered order: the goods already left, so only the physical stock limits it. Call release() for its own reservation first. */
+  ship(quantity: number): void {
+    checkQuantity(quantity);
+    if (quantity > this.props.quantity) throw new AppError('NOT_ENOUGH_STOCK', { available: this.props.quantity, requested: quantity });
+    this.props.quantity -= quantity;
+  }
+
+  reserve(quantity: number): void {
+    checkQuantity(quantity);
+    if (quantity > this.available) throw new AppError('NOT_ENOUGH_STOCK', { available: this.available, requested: quantity });
+    this.props.reserved += quantity;
+  }
+
+  release(quantity: number): void {
+    this.props.reserved = Math.max(0, this.props.reserved - quantity);
+  }
+}
+
+function checkQuantity(quantity: number) {
+  if (!Number.isInteger(quantity) || quantity <= 0) throw new AppError('QUANTITY_INVALID');
 }
 
 function validDetails(input: ProductDetails) {

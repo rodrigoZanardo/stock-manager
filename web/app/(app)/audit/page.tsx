@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
-import { api, ApiError, currentRole, type AuditEntry, type AuthAuditAction, type StockAuditAction } from '@/lib/api';
+import { api, ApiError, currentRole, isRole, type AuditEntry, type AuthAuditAction, type StockAuditAction } from '@/lib/api';
 
 type Action = StockAuditAction | AuthAuditAction;
 type Entry = AuditEntry<Action>;
@@ -43,6 +43,11 @@ function summarize(e: Entry, l: Labels): string {
       const note = text(field(d, 'note'));
       return `${sign}${text(field(d, 'quantity'))} → ${text(field(d, 'quantityAfter'))}${note ? ` · ${note}` : ''}`;
     }
+    case 'STOCK_RESERVED':
+    case 'STOCK_RELEASED': {
+      const note = text(field(d, 'note'));
+      return `${text(field(d, 'quantity'))}${note ? ` · ${note}` : ''}`;
+    }
     case 'USER_CREATED':
       return l.userAs(text(field(d, 'email')), text(field(d, 'role')));
     default:
@@ -75,7 +80,7 @@ export default async function AuditPage() {
     min: t('min'),
     max: t('max'),
     none: t('none'),
-    userAs: (email, role) => t('as', { email, role: role === 'ADMIN' || role === 'OPERATOR' || role === 'VIEWER' ? tUsers(role) : role }),
+    userAs: (email, role) => t('as', { email, role: isRole(role) ? tUsers(role) : role }),
   };
 
   return (

@@ -1,5 +1,6 @@
+import { Logger } from '@nestjs/common';
 import { AppError } from '@stock/shared';
-import { ApplyDeliveredOrderUseCase } from '../src/application/webhook.use-cases';
+import { ApplyOrderEventUseCase } from '../src/application/webhook.use-cases';
 import { Product } from '../src/domain/product';
 import { MAX_CLOCK_SKEW_SECONDS, signWebhook, verifyWebhook } from '../src/domain/webhook-signature';
 import { InMemoryRepo } from './in-memory-product.repository';
@@ -32,16 +33,16 @@ describe('webhook signature', () => {
   });
 });
 
-describe('ApplyDeliveredOrderUseCase', () => {
+describe('ApplyOrderEventUseCase', () => {
   let repo: InMemoryRepo;
-  let useCase: ApplyDeliveredOrderUseCase;
+  let useCase: ApplyOrderEventUseCase;
   const delivered = (eventSeq: number, items: { sku: string; quantity: number }[], orderNumber = 7) =>
-    ({ type: 'ORDER_STATUS_CHANGED', toStatus: 'DELIVERED', eventSeq, orderNumber, items });
+    ({ type: 'ORDER_STATUS_CHANGED', toStatus: 'DELIVERED', eventSeq, orderId: 'order-1', orderNumber, items });
   const stock = (sku: string) => repo.items.find((p) => p.sku === sku)?.quantity;
 
   beforeEach(() => {
     repo = new InMemoryRepo();
-    useCase = new ApplyDeliveredOrderUseCase(repo);
+    useCase = new ApplyOrderEventUseCase(repo);
     for (const [sku, quantity] of [['KB-001', 10], ['MS-001', 3]] as const) {
       const p = Product.create({ id: sku, sku, name: sku, minQuantity: 0 });
       p.move('IN', quantity);
@@ -51,7 +52,7 @@ describe('ApplyDeliveredOrderUseCase', () => {
 
   it('ignores events that are not a delivery', async () => {
     expect(await useCase.execute({ ...delivered(1, [{ sku: 'KB-001', quantity: 1 }]), toStatus: 'READY' })).toBe('ignored');
-    expect(await useCase.execute({ ...delivered(2, [{ sku: 'KB-001', quantity: 1 }]), type: 'ORDER_CREATED' })).toBe('ignored');
+    expect(await useCase.execute({ ...delivered(2, [{ sku: 'KB-001', quantity: 1 }]), type: 'ORDER_LATE', toStatus: undefined })).toBe('ignored');
     expect(stock('KB-001')).toBe(10);
   });
 
@@ -121,9 +122,9 @@ describe('ApplyDeliveredOrderUseCase', () => {
   });
 
   it('retries once when the stock changed under the write, and gives up on the second failure', async () => {
-    const real = repo.saveOrderDelivery.bind(repo);
+    const real = repo.saveOrderClosing.bind(repo);
     let failures = 1;
-    repo.saveOrderDelivery = async (...args) => {
+    repo.saveOrderClosing = async (...args) => {
       if (failures-- > 0) throw new AppError('STOCK_CHANGED');
       return real(...args);
     };
@@ -132,5 +133,62 @@ describe('ApplyDeliveredOrderUseCase', () => {
 
     failures = 2;
     await expect(useCase.execute(delivered(2, [{ sku: 'KB-001', quantity: 1 }]))).rejects.toMatchObject({ code: 'STOCK_CHANGED' });
+  });
+
+  describe('reservations', () => {
+    const created = (eventSeq: number, items: { sku: string; quantity: number }[], orderId = 'order-1') =>
+      ({ type: 'ORDER_CREATED', eventSeq, orderId, orderNumber: 7, items });
+    const status = (toStatus: string, eventSeq: number, items: { sku: string; quantity: number }[], orderId = 'order-1') =>
+      ({ type: 'ORDER_STATUS_CHANGED', toStatus, eventSeq, orderId, orderNumber: 7, items });
+    const product = (sku: string) => repo.items.find((p) => p.sku === sku);
+    const levels = (sku: string) => [product(sku)?.quantity, product(sku)?.reserved, product(sku)?.available];
+
+    it('ORDER_CREATED reserves without moving physical stock, and audits it', async () => {
+      expect(await useCase.execute(created(1, [{ sku: 'KB-001', quantity: 4 }]))).toEqual({ processed: true });
+      expect(levels('KB-001')).toEqual([10, 4, 6]);
+      expect(repo.movements).toHaveLength(0);
+      expect(repo.audit.map((a) => [a.action, a.details])).toEqual([
+        ['STOCK_RESERVED', { quantity: 4, note: 'Order #7 (Live Orders)', orderId: 'order-1', reservedAfter: 4 }],
+      ]);
+    });
+
+    it('reserves only what is available and records the shortfall; an unknown SKU is skipped and logged', async () => {
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      await useCase.execute(created(1, [{ sku: 'MS-001', quantity: 2 }], 'other'));
+      expect(await useCase.execute(created(2, [{ sku: 'MS-001', quantity: 5 }, { sku: 'NOPE-1', quantity: 1 }])))
+        .toEqual({ processed: true, shortfalls: [{ sku: 'MS-001', requested: 5, applied: 1 }, { sku: 'NOPE-1', requested: 1, applied: 0 }] });
+      expect(levels('MS-001')).toEqual([3, 3, 0]);
+      expect(repo.audit[1]?.details).toMatchObject({ quantity: 1, requested: 5, shortfall: 4 });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Order #7 (order-1): unknown SKU NOPE-1'));
+      warn.mockRestore();
+    });
+
+    it('CANCELLED releases the reservation', async () => {
+      await useCase.execute(created(1, [{ sku: 'KB-001', quantity: 4 }]));
+      expect(await useCase.execute(status('CANCELLED', 2, [{ sku: 'KB-001', quantity: 4 }]))).toEqual({ processed: true });
+      expect(levels('KB-001')).toEqual([10, 0, 10]);
+      expect(repo.audit.at(-1)).toMatchObject({ action: 'STOCK_RELEASED', productId: 'KB-001', details: { quantity: 4, orderId: 'order-1' } });
+    });
+
+    it('DELIVERED releases the reservation and lowers the physical stock, even into units reserved by other orders', async () => {
+      await useCase.execute(created(1, [{ sku: 'MS-001', quantity: 2 }]));
+      await useCase.execute(created(2, [{ sku: 'MS-001', quantity: 1 }], 'other'));
+      expect(await useCase.execute(status('DELIVERED', 3, [{ sku: 'MS-001', quantity: 3 }]))).toEqual({ processed: true });
+      expect(levels('MS-001')).toEqual([0, 1, 0]);
+      expect(repo.audit.slice(-2).map((a) => a.action)).toEqual(['STOCK_RELEASED', 'STOCK_OUT']);
+    });
+
+    it('a late ORDER_CREATED after its order was closed reserves nothing', async () => {
+      await useCase.execute(status('DELIVERED', 5, [{ sku: 'KB-001', quantity: 2 }]));
+      expect(await useCase.execute(created(4, [{ sku: 'KB-001', quantity: 2 }]))).toBe('ignored');
+      expect(levels('KB-001')).toEqual([8, 0, 8]);
+      expect(repo.audit.map((a) => a.action)).toEqual(['STOCK_OUT']);
+    });
+
+    it('applies the same ORDER_CREATED once', async () => {
+      await useCase.execute(created(1, [{ sku: 'KB-001', quantity: 4 }]));
+      expect(await useCase.execute(created(1, [{ sku: 'KB-001', quantity: 4 }]))).toBe('duplicate');
+      expect(levels('KB-001')).toEqual([10, 4, 6]);
+    });
   });
 });

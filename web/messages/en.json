@@ -52,6 +52,8 @@
     "name": "Name",
     "quantity": "Quantity",
     "minQuantity": "Minimum",
+    "reserved": "Reserved",
+    "available": "Available",
     "status": "Status",
     "low": "Low stock",
     "ok": "OK",
@@ -104,6 +106,7 @@
     "newUser": "New user"
   },
   "errors": {
+    "WEB_LOGIN_NOT_ALLOWED": "This account is for integrations only and cannot sign in to the web app.",
     "SKU_INVALID": "SKU must be 3-32 letters, digits or dashes.",
     "SKU_TAKEN": "SKU {sku} already exists.",
     "PRODUCT_NAME_REQUIRED": "Product name is required.",
@@ -177,6 +180,8 @@
       "PRODUCT_DELETED": "Product deleted",
       "STOCK_IN": "Stock in",
       "STOCK_OUT": "Stock out",
+      "STOCK_RESERVED": "Stock reserved",
+      "STOCK_RELEASED": "Reservation released",
       "USER_CREATED": "User created",
       "LOGIN_SUCCEEDED": "Sign-in",
       "LOGIN_FAILED": "Failed sign-in"

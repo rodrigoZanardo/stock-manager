@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
-import { ApplyDeliveredOrderUseCase } from '../src/application/webhook.use-cases';
+import { ApplyOrderEventUseCase, LIVE_ORDERS_ACTOR } from '../src/application/webhook.use-cases';
+import { Product } from '../src/domain/product';
 import { PrismaProductRepository } from '../src/infra/prisma-product.repository';
 import { PrismaService } from '../src/infra/prisma.service';
 
@@ -8,19 +9,24 @@ const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip
 
 describeWithDatabase('Live Orders delivery on a real database', () => {
   let db: PrismaService;
-  let useCase: ApplyDeliveredOrderUseCase;
+  let useCase: ApplyOrderEventUseCase;
   const delivered = (eventSeq: number, items: { sku: string; quantity: number }[]) =>
-    ({ type: 'ORDER_STATUS_CHANGED', toStatus: 'DELIVERED', eventSeq, orderNumber: 7, items });
+    ({ type: 'ORDER_STATUS_CHANGED', toStatus: 'DELIVERED', eventSeq, orderId: 'order-1', orderNumber: 7, items });
   const stock = async (sku: string) => (await db.product.findUnique({ where: { sku } }))?.quantity;
+  const reserved = async (sku: string) => (await db.product.findUnique({ where: { sku } }))?.reserved;
+  const created = (eventSeq: number, items: { sku: string; quantity: number }[]) =>
+    ({ type: 'ORDER_CREATED', eventSeq, orderId: 'order-1', orderNumber: 7, items });
+  const cancelled = (eventSeq: number) => ({ type: 'ORDER_STATUS_CHANGED', toStatus: 'CANCELLED', eventSeq, orderId: 'order-1', orderNumber: 7, items: [] });
 
   beforeAll(async () => {
     db = new PrismaService();
-    useCase = new ApplyDeliveredOrderUseCase(new PrismaProductRepository(db));
+    useCase = new ApplyOrderEventUseCase(new PrismaProductRepository(db));
     await db.$connect();
   });
 
   beforeEach(async () => {
     await db.processedWebhook.deleteMany();
+    await db.reservation.deleteMany();
     await db.movement.deleteMany();
     await db.auditEntry.deleteMany();
     await db.product.deleteMany();
@@ -58,6 +64,42 @@ describeWithDatabase('Live Orders delivery on a real database', () => {
     expect(await stock('KB-001')).toBe(9);
     expect(await stock('MS-001')).toBe(0);
     expect(await db.movement.count()).toBe(2);
-    expect(await db.processedWebhook.count()).toBe(1);
+    expect(await db.processedWebhook.count({ where: { eventSeq: '6' } })).toBe(1);
+  });
+
+  it('create then cancel holds the stock and gives it back', async () => {
+    expect(await useCase.execute(created(10, [{ sku: 'KB-001', quantity: 4 }, { sku: 'MS-001', quantity: 5 }])))
+      .toEqual({ processed: true, shortfalls: [{ sku: 'MS-001', requested: 5, applied: 3 }] });
+    expect([await stock('KB-001'), await reserved('KB-001'), await reserved('MS-001')]).toEqual([10, 4, 3]);
+    expect(await db.reservation.count()).toBe(2);
+    expect(await useCase.execute(cancelled(11))).toEqual({ processed: true });
+    expect([await stock('KB-001'), await reserved('KB-001'), await reserved('MS-001'), await db.reservation.count()]).toEqual([10, 0, 0, 0]);
+    expect((await db.auditEntry.findMany()).map((a) => a.action).sort()).toEqual(['STOCK_RELEASED', 'STOCK_RELEASED', 'STOCK_RESERVED', 'STOCK_RESERVED']);
+  });
+
+  it('create then deliver releases the reservation and lowers the stock', async () => {
+    await useCase.execute(created(10, [{ sku: 'KB-001', quantity: 4 }]));
+    expect(await useCase.execute(delivered(11, [{ sku: 'KB-001', quantity: 4 }]))).toEqual({ processed: true });
+    expect([await stock('KB-001'), await reserved('KB-001'), await db.reservation.count()]).toEqual([6, 0, 0]);
+  });
+
+  it('a delivery that arrives before its ORDER_CREATED leaves nothing reserved', async () => {
+    await useCase.execute(delivered(11, [{ sku: 'KB-001', quantity: 4 }]));
+    expect(await useCase.execute(created(10, [{ sku: 'KB-001', quantity: 4 }]))).toBe('ignored');
+    expect([await stock('KB-001'), await reserved('KB-001'), await db.reservation.count()]).toEqual([6, 0, 0]);
+  });
+
+  it('a manual OUT cannot take reserved units', async () => {
+    await useCase.execute(created(10, [{ sku: 'MS-001', quantity: 2 }]));
+    const repo = new PrismaProductRepository(db);
+    const product = await repo.findBySku('MS-001');
+    if (!product) throw new Error('seeded product missing');
+    expect(product.available).toBe(1);
+    // the in-memory check passes on a stale copy; the database guard still refuses
+    const stale = Product.restore({ id: product.id, sku: product.sku, name: product.name, quantity: 3, reserved: 0, minQuantity: 0, maxQuantity: null });
+    stale.move('OUT', 2);
+    await expect(repo.saveMovement(stale, { type: 'OUT', quantity: 2 }, { action: 'STOCK_OUT', productId: product.id, details: {}, actor: LIVE_ORDERS_ACTOR }))
+      .rejects.toMatchObject({ code: 'STOCK_CHANGED' });
+    expect(await stock('MS-001')).toBe(3);
   });
 });

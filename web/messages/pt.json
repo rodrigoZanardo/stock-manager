@@ -52,6 +52,8 @@
     "name": "Nome",
     "quantity": "Quantidade",
     "minQuantity": "Mínimo",
+    "reserved": "Reservado",
+    "available": "Disponível",
     "status": "Situação",
     "low": "Estoque baixo",
     "ok": "OK",
@@ -104,6 +106,7 @@
     "newUser": "Novo usuário"
   },
   "errors": {
+    "WEB_LOGIN_NOT_ALLOWED": "Esta conta é só para integrações e não pode entrar no aplicativo web.",
     "SKU_INVALID": "O SKU deve ter de 3 a 32 letras, números ou hífens.",
     "SKU_TAKEN": "O SKU {sku} já existe.",
     "PRODUCT_NAME_REQUIRED": "O nome do produto é obrigatório.",
@@ -177,6 +180,8 @@
       "PRODUCT_DELETED": "Produto excluído",
       "STOCK_IN": "Entrada",
       "STOCK_OUT": "Saída",
+      "STOCK_RESERVED": "Estoque reservado",
+      "STOCK_RELEASED": "Reserva liberada",
       "USER_CREATED": "Usuário criado",
       "LOGIN_SUCCEEDED": "Acesso",
       "LOGIN_FAILED": "Acesso negado"

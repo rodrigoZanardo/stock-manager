@@ -2,11 +2,13 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export type Role = 'ADMIN' | 'OPERATOR' | 'VIEWER';
+export const ROLES = ['ADMIN', 'OPERATOR', 'VIEWER'] as const;
+export type Role = (typeof ROLES)[number];
+export const isRole = (value: string | undefined): value is Role => ROLES.some((r) => r === value);
 export type MovementType = 'IN' | 'OUT';
 
 export type StockStatus = 'LOW' | 'OK' | 'OVER';
-export type Product = { id: string; sku: string; name: string; quantity: number; minQuantity: number; maxQuantity: number | null; status: StockStatus };
+export type Product = { id: string; sku: string; name: string; quantity: number; reserved: number; available: number; minQuantity: number; maxQuantity: number | null; status: StockStatus };
 export type InventoryRow = {
   productId: string;
   sku: string;
@@ -31,7 +33,7 @@ export type Dashboard = {
   recent: (Movement & { productId: string; productName: string })[];
 };
 
-export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT';
+export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_RESERVED' | 'STOCK_RELEASED';
 export type AuthAuditAction = 'USER_CREATED' | 'LOGIN_SUCCEEDED' | 'LOGIN_FAILED';
 export type AuditEntry<A> = { id: string; action: A; productId: string | null; details: Record<string, unknown>; actorEmail: string | null; createdAt: string };
 
@@ -128,5 +130,5 @@ export const api = {
 
 export async function currentRole(): Promise<Role | undefined> {
   const role = (await cookies()).get(ROLE_COOKIE)?.value;
-  return role === 'ADMIN' || role === 'OPERATOR' || role === 'VIEWER' ? role : undefined;
+  return isRole(role) ? role : undefined;
 }

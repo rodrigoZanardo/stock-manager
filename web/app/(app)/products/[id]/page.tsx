@@ -28,7 +28,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <h1 className="page-title">{product.name}</h1>
         <span className="font-mono text-sm text-muted">{product.sku}</span>
         <StockStatus status={product.status} />
-        <span className="metric ml-auto">{product.quantity}</span>
+        <span className="ml-auto text-sm text-muted tabular-nums">
+          {t('products.reserved')} {product.reserved} · {t('products.available')} {product.available}
+        </span>
+        <span className="metric">{product.quantity}</span>
       </div>
       <StockLevel {...product} className="max-w-xl" />
       <section className="card">

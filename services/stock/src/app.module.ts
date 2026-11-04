@@ -13,7 +13,7 @@ import {
   RegisterMovementUseCase,
   UpdateProductUseCase,
 } from './application/product.use-cases';
-import { ApplyDeliveredOrderUseCase } from './application/webhook.use-cases';
+import { ApplyOrderEventUseCase } from './application/webhook.use-cases';
 import { AuditController } from './http/audit.controller';
 import { MovementController } from './http/movement.controller';
 import { ProductController } from './http/product.controller';
@@ -37,7 +37,7 @@ import { PrismaService } from './infra/prisma.service';
     ListRecentMovementsUseCase,
     MovementTotalsUseCase,
     ListAuditUseCase,
-    ApplyDeliveredOrderUseCase,
+    ApplyOrderEventUseCase,
   ],
 })
 export class AppModule {}

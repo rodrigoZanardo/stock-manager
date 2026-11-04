@@ -29,6 +29,8 @@ export async function login(input: { email: string; password: string }): Promise
     session = await api.login(input);
   });
   if (result.error || !session) return result;
+  // VIEWER is only for the Live Orders integration; the web pages it would see answer 403
+  if (session.role === 'VIEWER') return { error: { code: 'WEB_LOGIN_NOT_ALLOWED', message: 'This account cannot sign in to the web app.' } };
 
   // https-only by default in production; COOKIE_SECURE=false allows a local http demo
   const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production';

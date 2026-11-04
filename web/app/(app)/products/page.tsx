@@ -29,6 +29,8 @@ export default async function ProductsPage() {
                   <th className="th">{t('sku')}</th>
                   <th className="th">{t('name')}</th>
                   <th className="th text-right">{t('quantity')}</th>
+                  <th className="th text-right">{t('reserved')}</th>
+                  <th className="th text-right">{t('available')}</th>
                   <th className="th text-right">{t('minQuantity')}</th>
                   <th className="th">{t('status')}</th>
                   <th className="th w-48">{t('level')}</th>
@@ -42,6 +44,8 @@ export default async function ProductsPage() {
                       <Link href={`/products/${p.id}`} className="link">{p.name}</Link>
                     </td>
                     <td className="td text-right tabular-nums">{p.quantity}</td>
+                    <td className="td text-right tabular-nums text-muted">{p.reserved}</td>
+                    <td className="td text-right tabular-nums">{p.available}</td>
                     <td className="td text-right tabular-nums text-muted">{p.minQuantity}</td>
                     <td className="td"><StockStatus status={p.status} /></td>
                     <td className="td"><StockLevel {...p} /></td>

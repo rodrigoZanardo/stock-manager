@@ -32,7 +32,9 @@ export class ProductResponse {
   @ApiProperty() id!: string;
   @ApiProperty() sku!: string;
   @ApiProperty() name!: string;
-  @ApiProperty() quantity!: number;
+  @ApiProperty({ description: 'Physical units on the shelf' }) quantity!: number;
+  @ApiProperty({ description: 'Units held for open Live Orders orders' }) reserved!: number;
+  @ApiProperty({ description: 'quantity - reserved (never below 0): what a stock OUT or a new order can take' }) available!: number;
   @ApiProperty() minQuantity!: number;
   @ApiProperty({ type: Number, nullable: true }) maxQuantity!: number | null;
   @ApiProperty({ enum: STOCK_STATUSES }) status!: StockStatus;

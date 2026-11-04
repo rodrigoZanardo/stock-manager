@@ -117,11 +117,47 @@ describe('stock rules', () => {
     expect(p.quantity).toBe(3);
   });
 
+  it('a manual OUT takes only available units, not reserved ones, and reports what is available', async () => {
+    const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0 }, admin);
+    await move.execute({ productId: p.id, type: 'IN', quantity: 5 }, admin);
+    p.reserve(3);
+    expect([p.quantity, p.reserved, p.available]).toEqual([5, 3, 2]);
+    await expect(move.execute({ productId: p.id, type: 'OUT', quantity: 3 }, admin)).rejects.toMatchObject({ code: 'NOT_ENOUGH_STOCK', params: { available: 2, requested: 3 } });
+    expect((await move.execute({ productId: p.id, type: 'OUT', quantity: 2 }, admin)).available).toBe(0);
+  });
+
   it('rejects zero, fractional and unknown products', async () => {
     const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0 }, admin);
     await expect(move.execute({ productId: p.id, type: 'IN', quantity: 0 }, admin)).rejects.toMatchObject({ code: 'QUANTITY_INVALID' });
     await expect(move.execute({ productId: p.id, type: 'IN', quantity: 1.5 }, admin)).rejects.toMatchObject({ code: 'QUANTITY_INVALID' });
     await expect(move.execute({ productId: 'nope', type: 'IN', quantity: 1 }, admin)).rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND' });
+  });
+});
+
+describe('reservations', () => {
+  const product = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: null });
+
+  it('reserves up to the available units and releases them', () => {
+    const p = product(5);
+    p.reserve(5);
+    expect([p.quantity, p.available]).toEqual([5, 0]);
+    expect(() => p.reserve(1)).toThrow(expect.objectContaining({ code: 'NOT_ENOUGH_STOCK', params: { available: 0, requested: 1 } }));
+    p.release(2);
+    expect(p.available).toBe(2);
+  });
+
+  it('a delivery is limited by the shelf only, and available never goes below zero', () => {
+    const p = product(5);
+    p.reserve(4);
+    p.ship(5);
+    expect([p.quantity, p.reserved, p.available]).toEqual([0, 4, 0]);
+    expect(() => p.ship(1)).toThrow(expect.objectContaining({ code: 'NOT_ENOUGH_STOCK' }));
+  });
+
+  it('low stock follows the physical quantity, not what is free', () => {
+    const p = product(5);
+    p.reserve(5);
+    expect(p.status).toBe('OK');
   });
 });
 
@@ -141,12 +177,12 @@ describe('SKU rules', () => {
 
 describe('product limits', () => {
   it('reports LOW, OK and OVER against min and max', () => {
-    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, minQuantity: 2, maxQuantity: 10 }).status;
+    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: 10 }).status;
     expect([at(2), at(3), at(10), at(11)]).toEqual(['LOW', 'OK', 'OK', 'OVER']);
   });
 
   it('LOW at zero stock with minimum zero, so an empty shelf is always flagged', () => {
-    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, minQuantity: 0, maxQuantity: null }).status).toBe('LOW');
+    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, reserved: 0, minQuantity: 0, maxQuantity: null }).status).toBe('LOW');
   });
 
   it('accepts a maximum below the current stock on update and then reports OVER', async () => {

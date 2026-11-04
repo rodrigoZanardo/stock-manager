@@ -10,22 +10,25 @@ datasource db {
 }
 
 model Product {
-  id          String     @id @default(uuid())
-  sku         String     @unique
-  name        String
-  quantity    Int        @default(0)
-  minQuantity Int        @default(0)
-  maxQuantity Int?
-  createdAt   DateTime   @default(now())
-  movements   Movement[]
+  id           String        @id @default(uuid())
+  sku          String        @unique
+  name         String
+  quantity     Int           @default(0)
+  /// Sum of this product's Reservation rows, kept in the same transaction so one UPDATE can guard quantity - reserved
+  reserved     Int           @default(0)
+  minQuantity  Int           @default(0)
+  maxQuantity  Int?
+  createdAt    DateTime      @default(now())
+  movements    Movement[]
+  reservations Reservation[]
 }
 
 model Movement {
-  id        String   @id @default(uuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  type      String   // IN | OUT
-  quantity  Int
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  type       String // IN | OUT
+  quantity   Int
   note       String?
   actorId    String?
   actorEmail String?
@@ -38,7 +41,7 @@ model Movement {
 /// One row per write. No relation to Product on purpose: a deleted product keeps its trail.
 model AuditEntry {
   id         String   @id @default(uuid())
-  action     String   // PRODUCT_CREATED | PRODUCT_UPDATED | PRODUCT_DELETED | STOCK_IN | STOCK_OUT
+  action     String // PRODUCT_CREATED | PRODUCT_UPDATED | PRODUCT_DELETED | STOCK_IN | STOCK_OUT | STOCK_RESERVED | STOCK_RELEASED
   productId  String?
   details    Json
   actorId    String
@@ -52,4 +55,16 @@ model AuditEntry {
 model ProcessedWebhook {
   eventSeq  String   @id
   createdAt DateTime @default(now())
+}
+
+/// Units held for an open Live Orders order. Keyed by orderId: the order number restarts every day.
+model Reservation {
+  orderId     String
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  orderNumber Int
+  createdAt   DateTime @default(now())
+
+  @@id([orderId, productId])
 }

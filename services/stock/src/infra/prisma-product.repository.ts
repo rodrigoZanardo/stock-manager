@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { AppError, hasPrismaCode, isJsonObject, isMovementType, isOneOf } from '@stock/shared';
-import { AUDIT_ACTIONS, AuditEntry, AuditRecord, Movement, ProductRepository } from '../application/product-repository';
+import { AUDIT_ACTIONS, AuditEntry, AuditRecord, Movement, OrderLine, ProductRepository } from '../application/product-repository';
 import { MovementType, Product } from '../domain/product';
-import type { Prisma } from '../../generated/prisma';
+import { Prisma } from '../../generated/prisma';
 import { PrismaService } from './prisma.service';
 
-type Row = { id: string; sku: string; name: string; quantity: number; minQuantity: number; maxQuantity: number | null };
+type Row = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null };
 const toDomain = (r: Row) => Product.restore(r);
 /** The column is a plain string; anything else than IN/OUT means corrupted data, not a user error. */
 function toType(type: string): MovementType {
@@ -25,6 +25,9 @@ function toAuditEntry({ id, action, productId, details, actorEmail, createdAt }:
   if (!isOneOf(AUDIT_ACTIONS, action) || !isJsonObject(details)) throw new Error(`Corrupted audit entry in database: ${id}`);
   return { id, action, productId, details, actorEmail, createdAt };
 }
+
+/** ProcessedWebhook key that marks an order delivered or cancelled. */
+const closedKey = (orderId: string) => `closed:${orderId}`;
 
 @Injectable()
 export class PrismaProductRepository extends ProductRepository {
@@ -113,31 +116,64 @@ export class PrismaProductRepository extends ProductRepository {
     return (await this.db.processedWebhook.count({ where: { eventSeq } })) > 0;
   }
 
-  async saveOrderDelivery(eventSeq: string, lines: { product: Product; quantity: number; note: string; audit: AuditRecord }[]) {
-    try {
-      await this.db.$transaction(async (tx) => {
-        await tx.processedWebhook.create({ data: { eventSeq } });
-        for (const l of lines) {
-          if (l.quantity > 0) await this.applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit);
-          else await tx.auditEntry.create({ data: auditData(l.audit) });
+  async saveOrderReservation(eventSeq: string, order: { id: string; number: number }, lines: OrderLine[]) {
+    return this.orderTransaction(eventSeq, order.id, async (tx) => {
+      if ((await tx.processedWebhook.count({ where: { eventSeq: closedKey(order.id) } })) > 0) return 'closed' as const;
+      for (const l of lines) {
+        if (l.quantity > 0) {
+          // same guard as a manual OUT: only what is not already held for another order
+          const updated = await tx.$executeRaw`UPDATE "Product" SET reserved = reserved + ${l.quantity} WHERE id = ${l.product.id} AND quantity - reserved >= ${l.quantity}`;
+          if (updated === 0) throw new AppError('STOCK_CHANGED');
+          await tx.reservation.create({ data: { orderId: order.id, productId: l.product.id, quantity: l.quantity, orderNumber: order.number } });
         }
+        await tx.auditEntry.create({ data: auditData(l.audit) });
+      }
+      return 'saved' as const;
+    });
+  }
+
+  async saveOrderClosing(eventSeq: string, orderId: string, releaseAudit: (r: { productId: string; quantity: number }) => AuditRecord, deliveries: OrderLine[]) {
+    const result = await this.orderTransaction(eventSeq, orderId, async (tx) => {
+      // a late ORDER_CREATED finds this key and reserves nothing; skipDuplicates: an order can be cancelled after delivery, or the reverse
+      await tx.processedWebhook.createMany({ data: [{ eventSeq: closedKey(orderId) }], skipDuplicates: true });
+      for (const r of await tx.reservation.findMany({ where: { orderId }, orderBy: { productId: 'asc' } })) {
+        await tx.product.update({ where: { id: r.productId }, data: { reserved: { decrement: r.quantity } } });
+        await tx.auditEntry.create({ data: auditData(releaseAudit(r)) });
+      }
+      await tx.reservation.deleteMany({ where: { orderId } });
+      for (const l of deliveries) {
+        if (l.quantity > 0) await this.applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit, false);
+        else await tx.auditEntry.create({ data: auditData(l.audit) });
+      }
+      return 'saved' as const;
+    });
+    return result === 'saved';
+  }
+
+  /** Stores the event and runs `work` in one transaction, one order at a time. */
+  private async orderTransaction<T>(eventSeq: string, orderId: string, work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T | 'duplicate'> {
+    try {
+      return await this.db.$transaction(async (tx) => {
+        // serializes the events of one order, so a create and a delivery arriving together cannot miss each other
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${orderId}))`;
+        await tx.processedWebhook.create({ data: { eventSeq } });
+        return work(tx);
       });
-      return true;
     } catch (e) {
       // a parallel request stored the same event first; the unique key decides
-      if (hasPrismaCode(e, 'P2002')) return false;
+      if (hasPrismaCode(e, 'P2002')) return 'duplicate';
       throw e;
     }
   }
 
-  private async applyMovement(tx: Prisma.TransactionClient, p: Product, m: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord) {
+  /** `guardReserved`: a user's OUT may not take units held for orders; a delivery is limited by the shelf only. */
+  private async applyMovement(tx: Prisma.TransactionClient, p: Product, m: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord, guardReserved = true) {
     const delta = m.type === 'IN' ? m.quantity : -m.quantity;
-    // conditional update: guards against two concurrent withdrawals both passing the in-memory check
-    const updated = await tx.product.updateMany({
-      where: { id: p.id, quantity: { gte: m.type === 'OUT' ? m.quantity : 0 } },
-      data: { quantity: { increment: delta } },
-    });
-    if (updated.count === 0) throw new AppError('STOCK_CHANGED');
+    const floor = m.type === 'OUT' ? m.quantity : 0;
+    // conditional update: guards against two concurrent withdrawals (or a withdrawal and a reservation) both passing the in-memory check
+    const updated = await tx.$executeRaw`UPDATE "Product" SET quantity = quantity + ${delta}
+      WHERE id = ${p.id} AND quantity - ${guardReserved ? Prisma.sql`reserved` : Prisma.sql`0`} >= ${floor}`;
+    if (updated === 0) throw new AppError('STOCK_CHANGED');
     await tx.movement.create({
       data: { productId: p.id, type: m.type, quantity: m.quantity, note: m.note, actorId: audit.actor.id, actorEmail: audit.actor.email },
     });

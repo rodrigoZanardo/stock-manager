@@ -21,6 +21,8 @@ const toResponse = (p: Product): ProductResponse => ({
   sku: p.sku,
   name: p.name,
   quantity: p.quantity,
+  reserved: p.reserved,
+  available: p.available,
   minQuantity: p.minQuantity,
   maxQuantity: p.maxQuantity,
   status: p.status,
@@ -106,7 +108,7 @@ export class ProductController {
 
   @Roles('ADMIN', 'OPERATOR')
   @Post(':id/movements')
-  @ApiOperation({ summary: 'Register a stock movement: IN adds units, OUT removes them (admin or operator)' })
+  @ApiOperation({ summary: 'Register a stock movement: IN adds units, OUT removes them, up to the available (not reserved) units (admin or operator)' })
   @ApiResponse({ status: 201, type: ProductResponse, description: 'Movement registered; returns the product with its new quantity' })
   @ApiErrorResponse(400, 'Quantity is not a whole number above zero, there is not enough stock, or the stock changed while saving')
   @ApiErrorResponse(401, 'Missing or expired token')

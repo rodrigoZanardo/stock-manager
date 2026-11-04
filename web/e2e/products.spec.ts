@@ -25,6 +25,16 @@ test('a wrong password shows the translated error', async ({ page }) => {
   await expect(page.getByText('Invalid email or password.')).toBeVisible();
 });
 
+test('a VIEWER cannot sign in to the web app', async ({ page }) => {
+  const email = process.env.VIEWER_EMAIL;
+  const password = process.env.VIEWER_PASSWORD;
+  test.skip(!email || !password, 'needs VIEWER_EMAIL and VIEWER_PASSWORD seeded');
+  if (!email || !password) return;
+  await signIn(page, email, password);
+  await expect(page.getByText('This account is for integrations only and cannot sign in to the web app.')).toBeVisible();
+  expect((await page.context().cookies()).some((c) => c.name === 'token')).toBe(false);
+});
+
 test('a new product appears in the list without reloading', async ({ page }) => {
   await signIn(page, 'admin@example.com', 'change-me-please');
   await page.waitForURL((url) => url.pathname === '/');
