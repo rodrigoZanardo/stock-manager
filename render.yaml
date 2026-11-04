@@ -27,7 +27,7 @@ services:
     plan: free
     dockerfilePath: ./services/Dockerfile
     dockerContext: .
-    dockerCommand: npm --prefix services/auth start
+    dockerCommand: npm --prefix /app/services/auth start
     envVars:
       # the database URL with ?schema=auth at the end, so this service keeps its own tables
       - key: DATABASE_URL
@@ -47,7 +47,7 @@ services:
     plan: free
     dockerfilePath: ./services/Dockerfile
     dockerContext: .
-    dockerCommand: npm --prefix services/stock start
+    dockerCommand: npm --prefix /app/services/stock start
     envVars:
       # the same database with ?schema=stock at the end
       - key: DATABASE_URL
@@ -61,7 +61,7 @@ services:
     plan: free
     dockerfilePath: ./services/Dockerfile
     dockerContext: .
-    dockerCommand: npm --prefix services/reports start
+    dockerCommand: npm --prefix /app/services/reports start
     envVars:
       # the stock service's public address, starting with https://
       - key: STOCK_URL
