@@ -86,14 +86,14 @@ export class LoginUseCase {
   }
 }
 
-/** Creates the first admin from env vars, so a fresh database works without open sign-up. */
+/** Creates a user from env vars at startup (the first admin, or a viewer), so a fresh database works without open sign-up. */
 @Injectable()
-export class EnsureAdminUseCase {
+export class EnsureUserUseCase {
   constructor(private readonly repo: UserRepository, private readonly createUser: CreateUserUseCase) {}
 
-  async execute(email: string, password: string): Promise<void> {
+  async execute(email: string, password: string, role: Role): Promise<void> {
     if (await this.repo.findByEmail(User.normalizeEmail(email))) return;
-    await this.createUser.execute({ email, password, role: 'ADMIN' }, null);
+    await this.createUser.execute({ email, password, role }, null);
   }
 }
 

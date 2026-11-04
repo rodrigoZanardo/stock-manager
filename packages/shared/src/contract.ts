@@ -2,7 +2,7 @@
  * Values that cross service boundaries. Declared once so DTO validation, Swagger enums
  * and TypeScript types cannot drift apart between services.
  */
-export const ROLES = ['ADMIN', 'OPERATOR'] as const;
+export const ROLES = ['ADMIN', 'OPERATOR', 'VIEWER'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const MOVEMENT_TYPES = ['IN', 'OUT'] as const;

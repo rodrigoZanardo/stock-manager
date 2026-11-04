@@ -96,6 +96,7 @@
     "role": "Perfil",
     "ADMIN": "Administrador",
     "OPERATOR": "Operador",
+    "VIEWER": "Visualizador",
     "submit": "Criar usuário",
     "created": "Usuário criado.",
     "team": "Equipe",

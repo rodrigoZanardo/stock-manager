@@ -93,20 +93,24 @@ export class ProductController {
     return this.deleteProduct.execute(id, actor);
   }
 
+  @Roles('ADMIN', 'OPERATOR')
   @Get(':id/movements')
-  @ApiOperation({ summary: 'Movement history of a product, newest first, at most 200 entries' })
+  @ApiOperation({ summary: 'Movement history of a product, newest first, at most 200 entries (not for viewers)' })
   @ApiResponse({ status: 200, type: [MovementResponse] })
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is a viewer')
   @ApiErrorResponse(404, 'Product not found')
   movements(@Param('id', productId) id: string): Promise<MovementResponse[]> {
     return this.listMovements.execute(id);
   }
 
+  @Roles('ADMIN', 'OPERATOR')
   @Post(':id/movements')
-  @ApiOperation({ summary: 'Register a stock movement: IN adds units, OUT removes them' })
+  @ApiOperation({ summary: 'Register a stock movement: IN adds units, OUT removes them (admin or operator)' })
   @ApiResponse({ status: 201, type: ProductResponse, description: 'Movement registered; returns the product with its new quantity' })
   @ApiErrorResponse(400, 'Quantity is not a whole number above zero, there is not enough stock, or the stock changed while saving')
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'The caller is a viewer')
   @ApiErrorResponse(404, 'Product not found')
   async move(@Param('id', productId) id: string, @Body() dto: MovementDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.registerMovement.execute({ productId: id, ...dto }, actor));

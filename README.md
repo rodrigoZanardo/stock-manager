@@ -66,7 +66,7 @@ Inside each service, dependencies point inward: `domain` imports nothing from th
 Plain TypeScript classes with a private constructor. `create()` validates, `restore()` rebuilds from the database without re-validating.
 
 - `Product`: SKU is normalized (`kb-001` → `KB-001`) and must be 3-32 letters, digits or dashes. Stock never goes negative. Quantities are whole numbers above zero. **Low stock** means quantity ≤ minimum.
-- `User`: email is normalized, the password has at least 8 characters, and the role is `ADMIN` or `OPERATOR`.
+- `User`: email is normalized, the password has at least 8 characters, and the role is `ADMIN`, `OPERATOR` or `VIEWER` (read-only: products only).
 
 ```ts
 move(type: MovementType, quantity: number): void {
@@ -114,8 +114,9 @@ Use cases: create, list, get, update and delete products, register and list move
 |---|---|---|
 | POST | `/auth/login` | public |
 | POST | `/users` | admin |
-| GET | `/products`, `/products/:id`, `/products/:id/movements`, `/dashboard`, `/inventory` | any |
-| POST | `/products/:id/movements` | any |
+| GET | `/products`, `/products/:id` | any |
+| GET | `/products/:id/movements`, `/dashboard`, `/inventory` | admin, operator |
+| POST | `/products/:id/movements` | admin, operator |
 | POST / PATCH / DELETE | `/products`, `/products/:id` | admin |
 | POST | `/inventory/analysis` (AI) | admin |
 | GET | `/audit/auth`, `/audit/stock` | admin |

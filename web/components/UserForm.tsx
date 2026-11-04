@@ -13,7 +13,7 @@ export function UserForm() {
   const schema = z.object({
     email: z.email(t('login.invalidEmail')),
     password: z.string().min(8, t('users.passwordHint')).max(128, t('common.tooLong', { max: 128 })),
-    role: z.enum(['ADMIN', 'OPERATOR']),
+    role: z.enum(['ADMIN', 'OPERATOR', 'VIEWER']),
   });
   const { register, handleSubmit, formState, reset } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -38,6 +38,7 @@ export function UserForm() {
           <select {...a} {...register('role')}>
             <option value="OPERATOR">{t('users.OPERATOR')}</option>
             <option value="ADMIN">{t('users.ADMIN')}</option>
+            <option value="VIEWER">{t('users.VIEWER')}</option>
           </select>
         )}
       </Field>

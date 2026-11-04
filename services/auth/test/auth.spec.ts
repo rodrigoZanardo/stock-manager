@@ -2,7 +2,7 @@ import type { Actor } from '@stock/shared';
 import {
   AuditRecord,
   CreateUserUseCase,
-  EnsureAdminUseCase,
+  EnsureUserUseCase,
   ListUsersUseCase,
   LoginUseCase,
   TokenPayload,
@@ -93,15 +93,20 @@ describe('users and login', () => {
   });
 
   it('creates the first admin once and keeps it on restart', async () => {
-    const ensure = new EnsureAdminUseCase(repo, createUser);
-    await ensure.execute('admin@example.com', 'change-me-please');
-    await ensure.execute('Admin@example.com', 'change-me-please');
+    const ensure = new EnsureUserUseCase(repo, createUser);
+    await ensure.execute('admin@example.com', 'change-me-please', 'ADMIN');
+    await ensure.execute('Admin@example.com', 'change-me-please', 'ADMIN');
     expect(repo.items).toHaveLength(1);
     expect(repo.items[0]?.role).toBe('ADMIN');
   });
 
+  it('seeds a viewer that signs in with the VIEWER role', async () => {
+    await new EnsureUserUseCase(repo, createUser).execute('viewer@example.com', 'viewer-pass-1', 'VIEWER');
+    await expect(login.execute({ email: 'viewer@example.com', password: 'viewer-pass-1' })).resolves.toMatchObject({ role: 'VIEWER' });
+  });
+
   it('records who created a user, and no actor for the seeded first admin', async () => {
-    await new EnsureAdminUseCase(repo, createUser).execute('Root@example.com', 'change-me-please');
+    await new EnsureUserUseCase(repo, createUser).execute('Root@example.com', 'change-me-please', 'ADMIN');
     await createUser.execute({ email: 'op@example.com', password: 'secret-123', role: 'OPERATOR' }, admin);
     expect(repo.audit).toEqual([
       { action: 'USER_CREATED', details: { email: 'root@example.com', role: 'ADMIN' }, actorId: null, actorEmail: null },

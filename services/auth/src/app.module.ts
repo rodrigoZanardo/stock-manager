@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { CoreModule, readKey, requireEnv } from '@stock/shared';
 import {
   CreateUserUseCase,
-  EnsureAdminUseCase,
+  EnsureUserUseCase,
   ListAuditUseCase,
   ListUsersUseCase,
   LoginUseCase,
@@ -38,19 +38,30 @@ const DEMO_ADMIN_PASSWORD = 'change-me-please';
     { provide: TokenService, useClass: JwtTokenService },
     CreateUserUseCase,
     LoginUseCase,
-    EnsureAdminUseCase,
+    EnsureUserUseCase,
     ListAuditUseCase,
     ListUsersUseCase,
   ],
 })
 export class AppModule implements OnApplicationBootstrap {
-  constructor(private readonly ensureAdmin: EnsureAdminUseCase) {}
+  constructor(private readonly ensureUser: EnsureUserUseCase) {}
 
-  onApplicationBootstrap() {
-    const password = requireEnv('ADMIN_PASSWORD');
-    // the demo password is published in the README; anyone could sign in as admin with it
-    if (process.env.NODE_ENV === 'production' && password === DEMO_ADMIN_PASSWORD)
-      throw new Error('ADMIN_PASSWORD still has the demo value. Set a real password before running in production.');
-    return this.ensureAdmin.execute(requireEnv('ADMIN_EMAIL'), password);
+  async onApplicationBootstrap() {
+    const adminPassword = requireEnv('ADMIN_PASSWORD');
+    assertNotDemoPassword(adminPassword);
+    await this.ensureUser.execute(requireEnv('ADMIN_EMAIL'), adminPassword, 'ADMIN');
+    // optional: without VIEWER_EMAIL no viewer is created
+    const viewerEmail = process.env.VIEWER_EMAIL;
+    if (viewerEmail) {
+      const viewerPassword = requireEnv('VIEWER_PASSWORD');
+      assertNotDemoPassword(viewerPassword);
+      await this.ensureUser.execute(viewerEmail, viewerPassword, 'VIEWER');
+    }
   }
+}
+
+/** The demo password is published in the README; anyone could sign in with it. */
+function assertNotDemoPassword(password: string) {
+  if (process.env.NODE_ENV === 'production' && password === DEMO_ADMIN_PASSWORD)
+    throw new Error('A seeded password still has the demo value. Set real passwords before running in production.');
 }

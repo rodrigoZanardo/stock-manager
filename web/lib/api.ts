@@ -2,7 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export type Role = 'ADMIN' | 'OPERATOR';
+export type Role = 'ADMIN' | 'OPERATOR' | 'VIEWER';
 export type MovementType = 'IN' | 'OUT';
 
 export type StockStatus = 'LOW' | 'OK' | 'OVER';
@@ -128,5 +128,5 @@ export const api = {
 
 export async function currentRole(): Promise<Role | undefined> {
   const role = (await cookies()).get(ROLE_COOKIE)?.value;
-  return role === 'ADMIN' || role === 'OPERATOR' ? role : undefined;
+  return role === 'ADMIN' || role === 'OPERATOR' || role === 'VIEWER' ? role : undefined;
 }
