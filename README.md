@@ -9,7 +9,7 @@
 Inventory control app: products, stock in and out, low-stock alerts, login with roles and a dashboard.
 A full-stack portfolio project, written from scratch, with the business rules in a tested domain layer.
 
-**Live demo:** https://stock-manager-web-v2s6.onrender.com, sign in with `demo@example.com` / `demo-stock-2026`. Free plan: the first visit after a quiet period can take about a minute, and the demo data is shared by every visitor.
+**Live demo:** https://stock-manager-web-v2s6.onrender.com, sign in with `demo@example.com` / `demo-stock-2026`, an operator account (records stock in and out; cannot manage products or users). The admin credentials of the live demo are private. Free plan: the first visit after a quiet period can take about a minute, and the demo data is shared by every visitor.
 
 ![Dashboard](docs/dashboard.png)
 
@@ -26,7 +26,7 @@ docker compose up --build
 
 Deploying it yourself on Render (free plan): see [docs/DEPLOY.md](docs/DEPLOY.md).
 
-Sign in with `admin@example.com` / `change-me-please`. `ADMIN_EMAIL` and `ADMIN_PASSWORD` set the first admin only, on the first start. Changing them later does not change an existing admin (see [.env.example](.env.example)).
+Sign in with `admin@example.com` / `change-me-please` (admin, local only) or `demo@example.com` / `demo-stock-2026` (operator). `ADMIN_EMAIL` and `ADMIN_PASSWORD` set the first admin only, on the first start. Changing them later does not change an existing admin (see [.env.example](.env.example)).
 
 <details>
 <summary><b>Quick tour: what to try in 2 minutes</b></summary>

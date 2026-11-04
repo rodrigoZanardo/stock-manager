@@ -105,6 +105,11 @@ describe('users and login', () => {
     await expect(login.execute({ email: 'viewer@example.com', password: 'viewer-pass-1' })).resolves.toMatchObject({ role: 'VIEWER' });
   });
 
+  it('seeds the public demo as an OPERATOR, not an admin', async () => {
+    await new EnsureUserUseCase(repo, createUser).execute('demo@example.com', 'demo-stock-2026', 'OPERATOR');
+    await expect(login.execute({ email: 'demo@example.com', password: 'demo-stock-2026' })).resolves.toMatchObject({ role: 'OPERATOR' });
+  });
+
   it('records who created a user, and no actor for the seeded first admin', async () => {
     await new EnsureUserUseCase(repo, createUser).execute('Root@example.com', 'change-me-please', 'ADMIN');
     await createUser.execute({ email: 'op@example.com', password: 'secret-123', role: 'OPERATOR' }, admin);

@@ -41,9 +41,13 @@ The migrations create the schema when the service starts.
 | Variable | Service | Value |
 |---|---|---|
 | `ADMIN_EMAIL` | `stock-manager-auth` | the admin email (for example `admin@example.com`) |
-| `ADMIN_PASSWORD` | `stock-manager-auth` | a real password, at least 8 characters. The service refuses the demo password `change-me-please` in production. |
+| `ADMIN_PASSWORD` | `stock-manager-auth` | a real password, at least 8 characters. The service refuses the demo password `change-me-please` in production. Keep both admin values private. |
+| `DEMO_EMAIL` | `stock-manager-auth` | optional public demo account, created as OPERATOR (for example `demo@example.com`). Empty: no demo user. |
+| `DEMO_PASSWORD` | `stock-manager-auth` | the demo password published in the README |
+| `VIEWER_EMAIL` | `stock-manager-auth` | optional read-only account for integrations such as Live Orders. Empty: no viewer. |
+| `VIEWER_PASSWORD` | `stock-manager-auth` | a real password; the integration signs in with it |
 
-`ADMIN_EMAIL` and `ADMIN_PASSWORD` create the admin only the first time the service starts with an empty database. Changing them later does not change an existing admin.
+These variables create each user only when its email is not in the database yet. Changing them later does not change an existing user's password or role.
 
 ## 5. Public addresses
 

@@ -57,6 +57,9 @@ export class AppModule implements OnApplicationBootstrap {
       assertNotDemoPassword(viewerPassword);
       await this.ensureUser.execute(viewerEmail, viewerPassword, 'VIEWER');
     }
+    // optional public demo account: an OPERATOR, so visitors cannot manage users or products; its password is public on purpose
+    const demoEmail = process.env.DEMO_EMAIL;
+    if (demoEmail) await this.ensureUser.execute(demoEmail, requireEnv('DEMO_PASSWORD'), 'OPERATOR');
   }
 }
 

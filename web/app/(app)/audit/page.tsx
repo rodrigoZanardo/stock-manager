@@ -75,7 +75,7 @@ export default async function AuditPage() {
     min: t('min'),
     max: t('max'),
     none: t('none'),
-    userAs: (email, role) => t('as', { email, role: role === 'ADMIN' || role === 'OPERATOR' ? tUsers(role) : role }),
+    userAs: (email, role) => t('as', { email, role: role === 'ADMIN' || role === 'OPERATOR' || role === 'VIEWER' ? tUsers(role) : role }),
   };
 
   return (

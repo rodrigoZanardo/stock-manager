@@ -34,6 +34,8 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-please}
       VIEWER_EMAIL: ${VIEWER_EMAIL:-}
       VIEWER_PASSWORD: ${VIEWER_PASSWORD:-}
+      DEMO_EMAIL: ${DEMO_EMAIL-demo@example.com}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-demo-stock-2026}
     volumes: [auth-keys:/keys:ro, jwt-public:/public:ro]
     ports: ["127.0.0.1:3032:3000"] # Swagger for local development; public traffic goes through the gateway
     depends_on:
