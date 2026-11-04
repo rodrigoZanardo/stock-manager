@@ -53,14 +53,28 @@ export class ApiError extends Error {
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3031';
 
+/** Waits between tries while a sleeping service starts (about 40 s in total, the cold start of a free host). */
+const WAKE_DELAYS_MS = [2000, 3000, 5000, 8000, 10000, 10000];
+const WAKING = new Set([502, 503, 504]);
+
 async function send(path: string, init: { method?: string; body?: unknown } = {}): Promise<Response> {
   const token = (await cookies()).get(TOKEN_COOKIE)?.value;
-  const res = await fetch(`${API_URL}${path}`, {
-    method: init.method ?? 'GET',
+  const method = init.method ?? 'GET';
+  const call = () => fetch(`${API_URL}${path}`, {
+    method,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     cache: 'no-store',
   });
+  let res = await call();
+  // only reads and login are retried: repeating a write after a 502 could apply it twice
+  if (method === 'GET' || path === '/auth/login') {
+    for (const delay of WAKE_DELAYS_MS) {
+      if (!WAKING.has(res.status)) break;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      res = await call();
+    }
+  }
   // expired or invalid session: send the user back to sign in (login itself returns 401 as a normal error)
   if (res.status === 401 && path !== '/auth/login') redirect('/login');
   if (!res.ok) {
@@ -75,6 +89,16 @@ const productPath = (id: string) => `/products/${encodeURIComponent(id)}`;
 
 async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   return (await send(path, init)).json();
+}
+
+/**
+ * Starts every backend service without waiting: on a free host they sleep when idle, and this runs
+ * while the visitor is still typing on the login page. Any answer (even 401) means the service is up.
+ */
+export function wakeServices(): void {
+  for (const path of ['/auth/login', '/products', '/dashboard']) {
+    void fetch(`${API_URL}${path}`, { cache: 'no-store' }).catch(() => undefined);
+  }
 }
 
 export const api = {

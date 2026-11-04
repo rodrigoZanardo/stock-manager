@@ -4,9 +4,11 @@ import { Brand } from '@/components/Brand';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { LoginForm } from '@/components/LoginForm';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { wakeServices } from '@/lib/api';
 import { isTheme, THEME_COOKIE } from '@/lib/theme';
 
 export default async function LoginPage() {
+  wakeServices();
   const [t, jar] = await Promise.all([getTranslations(), cookies()]);
   const saved = jar.get(THEME_COOKIE)?.value;
 
