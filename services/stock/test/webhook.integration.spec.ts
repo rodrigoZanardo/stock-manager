@@ -37,7 +37,7 @@ describeWithDatabase('Live Orders delivery on a real database', () => {
   });
 
   it('lowers every item once, with note and actor', async () => {
-    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 4 }, { sku: 'MS-001', quantity: 1 }]))).toBe('processed');
+    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 4 }, { sku: 'MS-001', quantity: 1 }]))).toEqual({ processed: true });
     expect([await stock('KB-001'), await stock('MS-001')]).toEqual([6, 2]);
     const rows = await db.movement.findMany();
     expect(rows).toHaveLength(2);
@@ -47,23 +47,17 @@ describeWithDatabase('Live Orders delivery on a real database', () => {
   it('two parallel requests with the same event change the stock once', async () => {
     const event = delivered(5, [{ sku: 'KB-001', quantity: 4 }]);
     const results = await Promise.all([useCase.execute(event), useCase.execute(event)]);
-    expect(results.sort()).toEqual(['duplicate', 'processed']);
+    expect(results.map((r) => (typeof r === 'string' ? r : 'processed')).sort()).toEqual(['duplicate', 'processed']);
     expect(await stock('KB-001')).toBe(6);
     expect(await db.movement.count()).toBe(1);
   });
 
-  it('writes nothing when the second item lacks stock, and the event can be retried later', async () => {
-    await expect(useCase.execute(delivered(6, [{ sku: 'KB-001', quantity: 1 }, { sku: 'MS-001', quantity: 4 }])))
-      .rejects.toMatchObject({ code: 'NOT_ENOUGH_STOCK' });
-    expect(await stock('KB-001')).toBe(10);
-    expect(await db.movement.count()).toBe(0);
-    expect(await db.processedWebhook.count()).toBe(0);
-  });
-
-  it('refuses an unknown SKU and writes nothing', async () => {
-    await expect(useCase.execute(delivered(8, [{ sku: 'KB-001', quantity: 1 }, { sku: 'NOPE-1', quantity: 1 }])))
-      .rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND' });
-    expect(await stock('KB-001')).toBe(10);
-    expect(await db.processedWebhook.count()).toBe(0);
+  it('takes out only what is left when an item is short, and skips an unknown SKU', async () => {
+    expect(await useCase.execute(delivered(6, [{ sku: 'KB-001', quantity: 1 }, { sku: 'MS-001', quantity: 4 }, { sku: 'NOPE-1', quantity: 1 }])))
+      .toEqual({ processed: true, shortfalls: [{ sku: 'MS-001', requested: 4, applied: 3 }, { sku: 'NOPE-1', requested: 1, applied: 0 }] });
+    expect(await stock('KB-001')).toBe(9);
+    expect(await stock('MS-001')).toBe(0);
+    expect(await db.movement.count()).toBe(2);
+    expect(await db.processedWebhook.count()).toBe(1);
   });
 });

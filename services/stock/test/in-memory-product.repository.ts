@@ -30,10 +30,13 @@ export class InMemoryRepo extends ProductRepository {
   }
   processed = new Set<string>();
   async isEventProcessed(seq: string) { return this.processed.has(seq); }
-  async saveOrderDelivery(seq: string, note: string, lines: { product: Product; quantity: number; audit: AuditRecord }[]) {
+  async saveOrderDelivery(seq: string, lines: { product: Product; quantity: number; note: string; audit: AuditRecord }[]) {
     if (this.processed.has(seq)) return false;
     this.processed.add(seq);
-    for (const l of lines) await this.saveMovement(l.product, { type: 'OUT', quantity: l.quantity, note }, l.audit);
+    for (const l of lines) {
+      if (l.quantity > 0) await this.saveMovement(l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit);
+      else this.audit.push(l.audit);
+    }
     return true;
   }
   async findAuditEntries(limit: number) {

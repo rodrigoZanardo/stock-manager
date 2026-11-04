@@ -74,6 +74,12 @@ describe('POST /webhooks/live-orders over HTTP', () => {
     expect(repo.items[0]?.quantity).toBe(7);
   });
 
+  it('answers 200 with the shortfall when stock is short', async () => {
+    repo.items[0]?.move('OUT', 9);
+    expect(await post(event('ORDER_STATUS_CHANGED', 'DELIVERED'))).toEqual({ status: 200, body: { processed: true, shortfalls: [{ sku: 'KB-001', requested: 3, applied: 1 }] } });
+    expect(repo.items[0]?.quantity).toBe(0);
+  });
+
   it('refuses a wrong signature', async () => {
     const res = await post(event('ORDER_STATUS_CHANGED', 'DELIVERED'), { secret: 'other' });
     expect([res.status, res.body.code]).toEqual([401, 'WEBHOOK_SIGNATURE_INVALID']);

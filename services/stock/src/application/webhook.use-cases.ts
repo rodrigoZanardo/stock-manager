@@ -16,11 +16,14 @@ type DeliveredEvent = {
   items: { sku: string; quantity: number }[];
 };
 
+export type Shortfall = { sku: string; requested: number; applied: number };
+type Processed = { processed: true; shortfalls?: Shortfall[] };
+
 @Injectable()
 export class ApplyDeliveredOrderUseCase {
   constructor(private readonly repo: ProductRepository) {}
 
-  async execute(e: DeliveredEvent): Promise<'ignored' | 'duplicate' | 'processed'> {
+  async execute(e: DeliveredEvent): Promise<'ignored' | 'duplicate' | Processed> {
     if (e.headerSeq !== undefined && e.headerSeq !== String(e.eventSeq))
       throw new AppError('INVALID_INPUT', { details: 'X-Event-Seq must match seq in the body' });
     if (e.type !== 'ORDER_STATUS_CHANGED' || e.toStatus !== 'DELIVERED') return 'ignored';
@@ -35,20 +38,25 @@ export class ApplyDeliveredOrderUseCase {
     }
   }
 
-  private async apply(e: DeliveredEvent, eventSeq: string): Promise<'duplicate' | 'processed'> {
-
+  private async apply(e: DeliveredEvent, eventSeq: string): Promise<'duplicate' | Processed> {
     // one line per SKU, sorted so two orders never lock the same products in opposite order
     const wanted = new Map<string, number>();
     for (const { sku, quantity } of e.items) wanted.set(sku, (wanted.get(sku) ?? 0) + quantity);
-    const note = `Order #${e.orderNumber} (Live Orders)`;
     const lines = [];
-    for (const [sku, quantity] of [...wanted].sort(([a], [b]) => a.localeCompare(b))) {
+    const shortfalls: Shortfall[] = [];
+    for (const [sku, requested] of [...wanted].sort(([a], [b]) => a.localeCompare(b))) {
       const product = await this.repo.findBySku(sku);
-      if (!product) throw new AppError('PRODUCT_NOT_FOUND', { sku });
-      product.move('OUT', quantity);
-      const details = { quantity, note, quantityAfter: product.quantity };
-      lines.push({ product, quantity, audit: { action: 'STOCK_OUT' as const, productId: product.id, details, actor: LIVE_ORDERS_ACTOR } });
+      // the goods already left the store: record what we can instead of refusing the event
+      if (!product) { shortfalls.push({ sku, requested, applied: 0 }); continue; }
+      const quantity = Math.min(requested, product.quantity);
+      const shortfall = requested - quantity;
+      if (quantity > 0) product.move('OUT', quantity);
+      const note = `Order #${e.orderNumber} (Live Orders)${shortfall ? ` — short ${shortfall}` : ''}`;
+      const details = { quantity, note, quantityAfter: product.quantity, ...(shortfall ? { requested, shortfall } : {}) };
+      if (shortfall) shortfalls.push({ sku, requested, applied: quantity });
+      lines.push({ product, quantity, note, audit: { action: 'STOCK_OUT' as const, productId: product.id, details, actor: LIVE_ORDERS_ACTOR } });
     }
-    return (await this.repo.saveOrderDelivery(eventSeq, note, lines)) ? 'processed' : 'duplicate';
+    if (!(await this.repo.saveOrderDelivery(eventSeq, lines))) return 'duplicate';
+    return shortfalls.length ? { processed: true, shortfalls } : { processed: true };
   }
 }

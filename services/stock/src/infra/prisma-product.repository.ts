@@ -113,11 +113,14 @@ export class PrismaProductRepository extends ProductRepository {
     return (await this.db.processedWebhook.count({ where: { eventSeq } })) > 0;
   }
 
-  async saveOrderDelivery(eventSeq: string, note: string, lines: { product: Product; quantity: number; audit: AuditRecord }[]) {
+  async saveOrderDelivery(eventSeq: string, lines: { product: Product; quantity: number; note: string; audit: AuditRecord }[]) {
     try {
       await this.db.$transaction(async (tx) => {
         await tx.processedWebhook.create({ data: { eventSeq } });
-        for (const l of lines) await this.applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note }, l.audit);
+        for (const l of lines) {
+          if (l.quantity > 0) await this.applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit);
+          else await tx.auditEntry.create({ data: auditData(l.audit) });
+        }
       });
       return true;
     } catch (e) {

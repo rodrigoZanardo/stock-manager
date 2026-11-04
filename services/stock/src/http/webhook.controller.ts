@@ -25,10 +25,18 @@ class LiveOrdersEventDto {
   @ApiProperty({ type: OrderDto }) @ValidateNested() @Type(() => OrderDto) order!: OrderDto;
 }
 
+class ShortfallDto {
+  @ApiProperty({ example: 'KB-001' }) sku!: string;
+  @ApiProperty({ example: 5 }) requested!: number;
+  @ApiProperty({ example: 2, description: 'What was taken out: the stock left, or 0 for an unknown SKU' }) applied!: number;
+}
+
 class WebhookResponse {
   @ApiPropertyOptional({ description: 'The event is not a delivery, nothing was done' }) ignored?: true;
   @ApiPropertyOptional({ description: 'This X-Event-Seq was already processed, nothing was done' }) duplicate?: true;
   @ApiPropertyOptional({ description: 'Stock was lowered' }) processed?: true;
+  @ApiPropertyOptional({ type: [ShortfallDto], description: 'Items with less stock than delivered, or unknown SKUs; sent only when there are any' })
+  shortfalls?: ShortfallDto[];
 }
 
 /** Called by Live Orders, not by a user: no token, the HMAC signature is the credential. */
@@ -41,14 +49,13 @@ export class WebhookController {
   @UseGuards(WebhookSignatureGuard)
   @Post('live-orders')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Live Orders event: a delivered order lowers the stock of its SKUs, once per event' })
+  @ApiOperation({ summary: 'Live Orders event: a delivered order lowers the stock of its SKUs, once per event; short stock or an unknown SKU is recorded in shortfalls, not refused' })
   @ApiHeader({ name: 'X-Signature', description: 'sha256=<hex HMAC-SHA256 of "<X-Timestamp>.<raw body>">' })
   @ApiHeader({ name: 'X-Timestamp', description: 'Unix seconds; refused when more than 5 minutes off' })
   @ApiHeader({ name: 'X-Event-Seq', required: false, description: 'Optional; when sent it must equal seq in the body' })
   @ApiResponse({ status: 200, type: WebhookResponse })
-  @ApiErrorResponse(400, 'Invalid body, X-Event-Seq different from seq, or not enough stock')
+  @ApiErrorResponse(400, 'Invalid body, or X-Event-Seq different from seq')
   @ApiErrorResponse(401, 'Signature missing or wrong, or timestamp too old')
-  @ApiErrorResponse(404, 'An item SKU is not a product')
   @ApiErrorResponse(503, 'LIVE_ORDERS_WEBHOOK_SECRET is not set')
   async liveOrders(
     // own pipe: the global one rejects unknown fields, and the event has many we do not use
@@ -63,6 +70,6 @@ export class WebhookController {
       orderNumber: event.order.number,
       items: event.order.items,
     });
-    return { [result]: true };
+    return typeof result === 'string' ? { [result]: true } : result;
   }
 }

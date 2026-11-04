@@ -2,8 +2,6 @@ import { AppError, type MovementType, type StockStatus } from '@stock/shared';
 
 export type { MovementType, StockStatus };
 
-
-
 /** What an admin can edit. `maxQuantity: null` means no upper limit. */
 export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null };
 

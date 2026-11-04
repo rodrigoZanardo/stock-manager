@@ -32,8 +32,8 @@ export abstract class ProductRepository {
   /** One transaction: remember the event, then every OUT. Returns false (and writes nothing) when the event was already stored. */
   abstract saveOrderDelivery(
     eventSeq: string,
-    note: string,
-    lines: { product: Product; quantity: number; audit: AuditRecord }[],
+    /** quantity 0 writes only the audit entry: the item was delivered but nothing was on the shelf */
+    lines: { product: Product; quantity: number; note: string; audit: AuditRecord }[],
   ): Promise<boolean>;
   /** Newest first. */
   abstract findAuditEntries(limit: number): Promise<AuditEntry[]>;

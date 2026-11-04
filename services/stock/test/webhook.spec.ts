@@ -56,7 +56,7 @@ describe('ApplyDeliveredOrderUseCase', () => {
   });
 
   it('lowers the stock of every item and records note and actor', async () => {
-    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 4 }, { sku: 'MS-001', quantity: 3 }]))).toBe('processed');
+    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 4 }, { sku: 'MS-001', quantity: 3 }]))).toEqual({ processed: true });
     expect(stock('KB-001')).toBe(6);
     expect(stock('MS-001')).toBe(0);
     expect(repo.movements.map((m) => [m.type, m.note, m.actorEmail])).toEqual([
@@ -72,29 +72,51 @@ describe('ApplyDeliveredOrderUseCase', () => {
 
   it('applies the same event once', async () => {
     const event = delivered(9, [{ sku: 'KB-001', quantity: 4 }]);
-    expect(await useCase.execute(event)).toBe('processed');
+    expect(await useCase.execute(event)).toEqual({ processed: true });
     expect(await useCase.execute(event)).toBe('duplicate');
     expect(stock('KB-001')).toBe(6);
   });
 
-  it('refuses an unknown SKU and changes nothing', async () => {
-    await expect(useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }, { sku: 'NOPE-1', quantity: 1 }])))
-      .rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND', params: { sku: 'NOPE-1' } });
-    expect(repo.movements).toHaveLength(0); // the stock itself is checked against the real database in the integration test
-    expect(await repo.isEventProcessed('1')).toBe(false);
+  it('takes out what is left when stock is short, and records the shortfall', async () => {
+    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }, { sku: 'MS-001', quantity: 5 }])))
+      .toEqual({ processed: true, shortfalls: [{ sku: 'MS-001', requested: 5, applied: 3 }] });
+    expect(stock('KB-001')).toBe(9);
+    expect(stock('MS-001')).toBe(0);
+    expect(repo.movements.map((m) => [m.productId, m.quantity, m.note])).toEqual([
+      ['KB-001', 1, 'Order #7 (Live Orders)'],
+      ['MS-001', 3, 'Order #7 (Live Orders) — short 2'],
+    ]);
+    expect(repo.audit[1]?.details).toMatchObject({ quantity: 3, requested: 5, shortfall: 2, quantityAfter: 0 });
   });
 
-  it('refuses when one item lacks stock and changes nothing', async () => {
-    await expect(useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }, { sku: 'MS-001', quantity: 4 }])))
-      .rejects.toMatchObject({ code: 'NOT_ENOUGH_STOCK' });
+  it('records no movement for a line with zero stock but lists it in the audit', async () => {
+    repo.items[1]?.move('OUT', 3);
+    expect(await useCase.execute(delivered(1, [{ sku: 'MS-001', quantity: 2 }])))
+      .toEqual({ processed: true, shortfalls: [{ sku: 'MS-001', requested: 2, applied: 0 }] });
     expect(repo.movements).toHaveLength(0);
-    expect(await repo.isEventProcessed('1')).toBe(false);
+    expect(repo.audit.map((a) => [a.action, a.productId, a.details])).toEqual([
+      ['STOCK_OUT', 'MS-001', { quantity: 0, note: 'Order #7 (Live Orders) — short 2', quantityAfter: 0, requested: 2, shortfall: 2 }],
+    ]);
+    expect(await useCase.execute(delivered(1, [{ sku: 'MS-001', quantity: 2 }]))).toBe('duplicate');
+  });
+
+  it('skips an unknown SKU, applies the rest and lists it', async () => {
+    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }, { sku: 'NOPE-1', quantity: 2 }])))
+      .toEqual({ processed: true, shortfalls: [{ sku: 'NOPE-1', requested: 2, applied: 0 }] });
+    expect(stock('KB-001')).toBe(9);
+    expect(repo.movements).toHaveLength(1);
+    expect(await repo.isEventProcessed('1')).toBe(true);
+  });
+
+  it('keeps the plain note and no shortfall details when everything is in stock', async () => {
+    expect(await useCase.execute(delivered(1, [{ sku: 'MS-001', quantity: 3 }]))).toEqual({ processed: true });
+    expect(repo.audit[0]?.details).toEqual({ quantity: 3, note: 'Order #7 (Live Orders)', quantityAfter: 0 });
   });
 
   it('refuses an X-Event-Seq header that differs from the signed seq, so the replay key cannot be changed', async () => {
     const event = delivered(5, [{ sku: 'KB-001', quantity: 1 }]);
     await expect(useCase.execute({ ...event, headerSeq: '6' })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
-    expect(await useCase.execute({ ...event, headerSeq: '5' })).toBe('processed');
+    expect(await useCase.execute({ ...event, headerSeq: '5' })).toEqual({ processed: true });
     expect(repo.movements).toHaveLength(1);
   });
 
@@ -105,7 +127,7 @@ describe('ApplyDeliveredOrderUseCase', () => {
       if (failures-- > 0) throw new AppError('STOCK_CHANGED');
       return real(...args);
     };
-    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }]))).toBe('processed');
+    expect(await useCase.execute(delivered(1, [{ sku: 'KB-001', quantity: 1 }]))).toEqual({ processed: true });
     expect(repo.movements).toHaveLength(1);
 
     failures = 2;
