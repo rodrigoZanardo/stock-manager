@@ -47,3 +47,9 @@ model AuditEntry {
 
   @@index([createdAt])
 }
+
+/// One row per Live Orders event already applied. The primary key is what makes a repeated event harmless.
+model ProcessedWebhook {
+  eventSeq  String   @id
+  createdAt DateTime @default(now())
+}

@@ -13,15 +13,17 @@ import {
   RegisterMovementUseCase,
   UpdateProductUseCase,
 } from './application/product.use-cases';
+import { ApplyDeliveredOrderUseCase } from './application/webhook.use-cases';
 import { AuditController } from './http/audit.controller';
 import { MovementController } from './http/movement.controller';
 import { ProductController } from './http/product.controller';
+import { WebhookController } from './http/webhook.controller';
 import { PrismaProductRepository } from './infra/prisma-product.repository';
 import { PrismaService } from './infra/prisma.service';
 
 @Module({
   imports: [CoreModule],
-  controllers: [ProductController, MovementController, AuditController],
+  controllers: [ProductController, MovementController, AuditController, WebhookController],
   providers: [
     PrismaService,
     { provide: ProductRepository, useClass: PrismaProductRepository },
@@ -35,6 +37,7 @@ import { PrismaService } from './infra/prisma.service';
     ListRecentMovementsUseCase,
     MovementTotalsUseCase,
     ListAuditUseCase,
+    ApplyDeliveredOrderUseCase,
   ],
 })
 export class AppModule {}

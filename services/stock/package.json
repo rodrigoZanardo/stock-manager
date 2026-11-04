@@ -10,6 +10,7 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "maxWorkers": 1,
     "roots": ["<rootDir>/test"],
     "moduleNameMapper": { "^@stock/shared$": "<rootDir>/../../packages/shared/src" }
   }

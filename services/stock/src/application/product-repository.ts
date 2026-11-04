@@ -28,6 +28,13 @@ export abstract class ProductRepository {
   abstract movementTotals(since?: Date): Promise<MovementTotal[]>;
   /** Must update the quantity and record the movement atomically. */
   abstract saveMovement(product: Product, movement: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord): Promise<void>;
+  abstract isEventProcessed(eventSeq: string): Promise<boolean>;
+  /** One transaction: remember the event, then every OUT. Returns false (and writes nothing) when the event was already stored. */
+  abstract saveOrderDelivery(
+    eventSeq: string,
+    note: string,
+    lines: { product: Product; quantity: number; audit: AuditRecord }[],
+  ): Promise<boolean>;
   /** Newest first. */
   abstract findAuditEntries(limit: number): Promise<AuditEntry[]>;
 }
