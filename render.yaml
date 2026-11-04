@@ -27,7 +27,6 @@ services:
     plan: free
     dockerfilePath: ./services/Dockerfile
     dockerContext: .
-    dockerCommand: npm --prefix /app/services/auth start
     envVars:
       # the database URL with ?schema=auth at the end, so this service keeps its own tables
       - key: DATABASE_URL
