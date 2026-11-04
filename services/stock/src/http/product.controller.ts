@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { type Actor, ApiErrorResponse, CurrentUser, Roles } from '@stock/shared';
+import { type Actor, ApiErrorResponse, AppError, CurrentUser, Roles } from '@stock/shared';
 import {
   CreateProductUseCase,
   DeleteProductUseCase,
@@ -12,6 +12,9 @@ import {
 } from '../application/product.use-cases';
 import { Product } from '../domain/product';
 import { CreateProductDto, MovementDto, MovementResponse, ProductResponse, UpdateProductDto } from './product.dto';
+
+/** A malformed id cannot match a product: answer like a missing one, in the API error format. */
+export const productId = new ParseUUIDPipe({ exceptionFactory: () => new AppError('PRODUCT_NOT_FOUND') });
 
 const toResponse = (p: Product): ProductResponse => ({
   id: p.id,
@@ -48,10 +51,9 @@ export class ProductController {
   @Get(':id')
   @ApiOperation({ summary: 'Get one product' })
   @ApiResponse({ status: 200, type: ProductResponse })
-  @ApiErrorResponse(400, 'The id is not a UUID')
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(404, 'Product not found')
-  async get(@Param('id', ParseUUIDPipe) id: string): Promise<ProductResponse> {
+  async get(@Param('id', productId) id: string): Promise<ProductResponse> {
     return toResponse(await this.getProduct.execute(id));
   }
 
@@ -74,7 +76,7 @@ export class ProductController {
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(403, 'The caller is not an admin')
   @ApiErrorResponse(404, 'Product not found')
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateProductDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
+  async update(@Param('id', productId) id: string, @Body() dto: UpdateProductDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.updateProduct.execute({ id, ...dto }, actor));
   }
 
@@ -87,17 +89,16 @@ export class ProductController {
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(403, 'The caller is not an admin')
   @ApiErrorResponse(404, 'Product not found')
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: Actor): Promise<void> {
+  remove(@Param('id', productId) id: string, @CurrentUser() actor: Actor): Promise<void> {
     return this.deleteProduct.execute(id, actor);
   }
 
   @Get(':id/movements')
   @ApiOperation({ summary: 'Movement history of a product, newest first, at most 200 entries' })
   @ApiResponse({ status: 200, type: [MovementResponse] })
-  @ApiErrorResponse(400, 'The id is not a UUID')
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(404, 'Product not found')
-  movements(@Param('id', ParseUUIDPipe) id: string): Promise<MovementResponse[]> {
+  movements(@Param('id', productId) id: string): Promise<MovementResponse[]> {
     return this.listMovements.execute(id);
   }
 
@@ -107,7 +108,7 @@ export class ProductController {
   @ApiErrorResponse(400, 'Quantity is not a whole number above zero, there is not enough stock, or the stock changed while saving')
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(404, 'Product not found')
-  async move(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MovementDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
+  async move(@Param('id', productId) id: string, @Body() dto: MovementDto, @CurrentUser() actor: Actor): Promise<ProductResponse> {
     return toResponse(await this.registerMovement.execute({ productId: id, ...dto }, actor));
   }
 }
