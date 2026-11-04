@@ -1,7 +1,5 @@
 # Stock Manager
 
-**English** · [Português (BR)](docs/README.pt-BR.md) · [Português (PT)](docs/README.pt-PT.md) · [Español](docs/README.es.md) · [Français](docs/README.fr.md)
-
 [![CI](https://github.com/rodrigoZanardo/stock-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/rodrigoZanardo/stock-manager/actions/workflows/ci.yml)
 ![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=nextdotjs)
