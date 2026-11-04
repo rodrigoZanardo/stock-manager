@@ -19,6 +19,7 @@ class OrderDto {
 
 /** Only the fields we use; the rest of the Live Orders event is dropped, not rejected. */
 class LiveOrdersEventDto {
+  @ApiProperty({ example: 42, description: 'Covered by the signature; the deduplication key' }) @IsInt() @Min(1) seq!: number;
   @ApiProperty({ example: 'ORDER_STATUS_CHANGED' }) @IsString() type!: string;
   @ApiPropertyOptional({ example: 'DELIVERED' }) @IsOptional() @IsString() toStatus?: string;
   @ApiProperty({ type: OrderDto }) @ValidateNested() @Type(() => OrderDto) order!: OrderDto;
@@ -43,21 +44,22 @@ export class WebhookController {
   @ApiOperation({ summary: 'Live Orders event: a delivered order lowers the stock of its SKUs, once per event' })
   @ApiHeader({ name: 'X-Signature', description: 'sha256=<hex HMAC-SHA256 of "<X-Timestamp>.<raw body>">' })
   @ApiHeader({ name: 'X-Timestamp', description: 'Unix seconds; refused when more than 5 minutes off' })
-  @ApiHeader({ name: 'X-Event-Seq', description: 'Event sequence number; the same value again changes nothing' })
+  @ApiHeader({ name: 'X-Event-Seq', required: false, description: 'Optional; when sent it must equal seq in the body' })
   @ApiResponse({ status: 200, type: WebhookResponse })
-  @ApiErrorResponse(400, 'Invalid body or X-Event-Seq, or not enough stock')
+  @ApiErrorResponse(400, 'Invalid body, X-Event-Seq different from seq, or not enough stock')
   @ApiErrorResponse(401, 'Signature missing or wrong, or timestamp too old')
   @ApiErrorResponse(404, 'An item SKU is not a product')
   @ApiErrorResponse(503, 'LIVE_ORDERS_WEBHOOK_SECRET is not set')
   async liveOrders(
     // own pipe: the global one rejects unknown fields, and the event has many we do not use
-    @Body(new ValidationPipe({ whitelist: true, exceptionFactory: invalidInput, expectedType: LiveOrdersEventDto })) event: LiveOrdersEventDto,
-    @Headers('x-event-seq') eventSeq?: string,
+    @Body(new ValidationPipe({ whitelist: true, exceptionFactory: invalidInput, expectedType: LiveOrdersEventDto })) event: Readonly<LiveOrdersEventDto>, // Readonly<> makes the design type Object, so the global strict pipe skips it
+    @Headers('x-event-seq') headerSeq?: string,
   ): Promise<WebhookResponse> {
     const result = await this.delivered.execute({
       type: event.type,
       toStatus: event.toStatus,
-      eventSeq,
+      eventSeq: event.seq,
+      headerSeq,
       orderNumber: event.order.number,
       items: event.order.items,
     });

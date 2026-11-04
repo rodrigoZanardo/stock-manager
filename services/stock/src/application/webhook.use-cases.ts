@@ -8,7 +8,10 @@ export const LIVE_ORDERS_ACTOR: Actor = { id: 'live-orders', email: 'live-orders
 type DeliveredEvent = {
   type: string;
   toStatus?: string;
-  eventSeq?: string;
+  /** From the signed body: the only sequence number the signature covers. */
+  eventSeq: number;
+  /** The X-Event-Seq header, unsigned; it must agree with the body when sent. */
+  headerSeq?: string;
   orderNumber: number;
   items: { sku: string; quantity: number }[];
 };
@@ -18,9 +21,21 @@ export class ApplyDeliveredOrderUseCase {
   constructor(private readonly repo: ProductRepository) {}
 
   async execute(e: DeliveredEvent): Promise<'ignored' | 'duplicate' | 'processed'> {
+    if (e.headerSeq !== undefined && e.headerSeq !== String(e.eventSeq))
+      throw new AppError('INVALID_INPUT', { details: 'X-Event-Seq must match seq in the body' });
     if (e.type !== 'ORDER_STATUS_CHANGED' || e.toStatus !== 'DELIVERED') return 'ignored';
-    if (!e.eventSeq || !/^\d{1,18}$/.test(e.eventSeq)) throw new AppError('INVALID_INPUT', { details: 'X-Event-Seq must be a whole number' });
-    if (await this.repo.isEventProcessed(e.eventSeq)) return 'duplicate';
+    const eventSeq = String(e.eventSeq);
+    if (await this.repo.isEventProcessed(eventSeq)) return 'duplicate';
+    try {
+      return await this.apply(e, eventSeq);
+    } catch (err) {
+      // a different order took the same stock between our read and our write; read again once
+      if (err instanceof AppError && err.code === 'STOCK_CHANGED') return this.apply(e, eventSeq);
+      throw err;
+    }
+  }
+
+  private async apply(e: DeliveredEvent, eventSeq: string): Promise<'duplicate' | 'processed'> {
 
     // one line per SKU, sorted so two orders never lock the same products in opposite order
     const wanted = new Map<string, number>();
@@ -34,6 +49,6 @@ export class ApplyDeliveredOrderUseCase {
       const details = { quantity, note, quantityAfter: product.quantity };
       lines.push({ product, quantity, audit: { action: 'STOCK_OUT' as const, productId: product.id, details, actor: LIVE_ORDERS_ACTOR } });
     }
-    return (await this.repo.saveOrderDelivery(e.eventSeq, note, lines)) ? 'processed' : 'duplicate';
+    return (await this.repo.saveOrderDelivery(eventSeq, note, lines)) ? 'processed' : 'duplicate';
   }
 }
