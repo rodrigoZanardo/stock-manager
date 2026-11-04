@@ -6,5 +6,7 @@ import { isLocale, type Locale } from './locales';
 export default getRequestConfig(async () => {
   const value = (await cookies()).get('locale')?.value;
   const locale: Locale = isLocale(value) ? value : 'en';
-  return { locale, messages: (await import(`../messages/${locale}.json`)).default };
+  // the server runs in UTC; Portuguese means a Brazilian user, so times show in Brasília time
+  const timeZone = locale === 'pt' ? 'America/Sao_Paulo' : 'UTC';
+  return { locale, timeZone, messages: (await import(`../messages/${locale}.json`)).default };
 });
