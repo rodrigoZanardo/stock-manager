@@ -188,3 +188,11 @@ Tests run on every push with GitHub Actions. Rules for contributors and AI codin
 - [x] Audit trail: who changed what and when (products, stock, users, logins) and one structured log line per request
 - [x] Online demo on Render (see the top of this page)
 - [x] Stock counts: snapshot, enter counted quantities, review differences, apply once as IN/OUT movements (never below reserved units)
+- [x] Bin location per product (aisle, block, floor, position, level)
+- [x] Prices and costs, suppliers, purchase orders that book stock in on receipt, purchase suggestion from low stock
+- [x] Reserved stock for Live Orders orders (reserve on create, release on cancel, ship on delivery)
+- [ ] Update the screenshots (prices, locations, purchases, counts)
+- [ ] One part in several bin locations
+- [ ] Barcode scanning for picking and receiving
+- [ ] Photos and search by vehicle
+- [ ] Error monitoring (needs a free Sentry account)
