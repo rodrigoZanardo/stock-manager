@@ -1,7 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { PasswordHasher, TokenPayload, TokenService } from '../application/auth.use-cases';
+
+type Lifetime = NonNullable<JwtSignOptions['expiresIn']>;
+
+/** JWT_EXPIRES_IN as jsonwebtoken accepts it ("8h", "30m", "3600"); a typo fails at startup instead of on every login. */
+export function tokenLifetime(value: string): Lifetime {
+  if (!isLifetime(value)) throw new Error(`JWT_EXPIRES_IN must look like 8h, 30m or 3600, got "${value}"`);
+  return value;
+}
+
+function isLifetime(value: string): value is Extract<Lifetime, string> {
+  return /^\d+(\.\d+)?\s?(ms|s|m|h|d|w|y)?$/i.test(value);
+}
 
 function scryptAsync(password: string, salt: string, keylen: number): Promise<Buffer> {
   return new Promise((resolve, reject) =>

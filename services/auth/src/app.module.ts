@@ -12,7 +12,7 @@ import {
   UserRepository,
 } from './application/auth.use-cases';
 import { AuthController } from './http/auth.controller';
-import { JwtTokenService, ScryptPasswordHasher } from './infra/auth.services';
+import { JwtTokenService, ScryptPasswordHasher, tokenLifetime } from './infra/auth.services';
 import { PrismaUserRepository } from './infra/prisma-user.repository';
 import { PrismaService } from './infra/prisma.service';
 
@@ -26,7 +26,7 @@ const DEMO_ADMIN_PASSWORD = 'change-me-please';
       useFactory: () => ({
         privateKey: readKey('JWT_PRIVATE_KEY_FILE', 'JWT_PRIVATE_KEY'),
         // shortcut: a token stays valid until it expires, so a removed user keeps access for up to 8h; add a disabled flag checked by the guard when user removal exists
-        signOptions: { algorithm: 'RS256', expiresIn: process.env.JWT_EXPIRES_IN ?? '8h' },
+        signOptions: { algorithm: 'RS256', expiresIn: tokenLifetime(process.env.JWT_EXPIRES_IN ?? '8h') },
       }),
     }),
   ],

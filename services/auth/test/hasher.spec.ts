@@ -1,4 +1,4 @@
-import { ScryptPasswordHasher } from '../src/infra/auth.services';
+import { ScryptPasswordHasher, tokenLifetime } from '../src/infra/auth.services';
 
 describe('ScryptPasswordHasher', () => {
   const hasher = new ScryptPasswordHasher();
@@ -13,4 +13,9 @@ describe('ScryptPasswordHasher', () => {
   it.each(['', 'abc', 'salt:', 'salt:zz', 'salt:abc'])('returns false, never throws, for a malformed stored hash %p', async (stored) => {
     await expect(hasher.verify('x', stored)).resolves.toBe(false);
   });
+});
+
+describe('tokenLifetime', () => {
+  it.each(['8h', '30m', '3600', '1.5d'])('accepts %s', (v) => expect(tokenLifetime(v)).toBe(v));
+  it.each(['', 'eight hours', '8 hours', '-1h'])('refuses %s', (v) => expect(() => tokenLifetime(v)).toThrow('JWT_EXPIRES_IN'));
 });
