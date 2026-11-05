@@ -43,7 +43,7 @@ async function call(method, path, token, body) {
 
 const { accessToken } = await call('POST', '/auth/login', undefined, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
 const existing = new Map((await call('GET', '/products', accessToken)).map((p) => [p.sku, p]));
-for (const [sku, name, stock, minQuantity, maxQuantity, location] of PARTS) {
+for (const [sku, name, stock, minQuantity, maxQuantity, location, price, cost] of PARTS) {
   const found = existing.get(sku);
   if (found) {
     if (found.location && found.price != null) {
