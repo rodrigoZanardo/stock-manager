@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { isLocale } from '@/i18n/locales';
 import {
-  api, ApiError, type ApiFailure, type MovementType, type ProductInput, type PurchaseChange, type PurchaseItemInput,
+  api, ApiError, type ApiFailure, type CountChange, type MovementType, type ProductInput, type PurchaseChange, type PurchaseItemInput,
   ROLE_COOKIE, type Role, type SupplierInput, TOKEN_COOKIE,
 } from '@/lib/api';
 
@@ -119,4 +119,22 @@ export async function updatePurchaseOrder(id: string, items: PurchaseItemInput[]
 
 export async function changePurchaseOrder(id: string, change: PurchaseChange): Promise<ActionResult> {
   return attempt(() => api.changePurchaseOrder(id, change));
+}
+
+/** Starts a count with a snapshot of every product and opens it. */
+export async function startInventoryCount(): Promise<ActionResult> {
+  let id: string | undefined;
+  const result = await attempt(async () => {
+    id = (await api.startInventoryCount()).id;
+  });
+  if (id) redirect(`/counts/${id}`);
+  return result;
+}
+
+export async function enterCounted(id: string, items: { productId: string; counted: number }[]): Promise<ActionResult> {
+  return attempt(() => api.enterCounted(id, items));
+}
+
+export async function changeInventoryCount(id: string, change: CountChange): Promise<ActionResult> {
+  return attempt(() => api.changeInventoryCount(id, change));
 }

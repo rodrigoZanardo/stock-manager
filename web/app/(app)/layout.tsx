@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/">{t('nav.dashboard')}</NavLink>
           <NavLink href="/products">{t('nav.products')}</NavLink>
           <NavLink href="/inventory">{t('nav.inventory')}</NavLink>
+          <NavLink href="/counts">{t('nav.counts')}</NavLink>
           <NavLink href="/purchases">{t('nav.purchases')}</NavLink>
           <NavLink href="/suppliers">{t('nav.suppliers')}</NavLink>
           {role === 'ADMIN' && (

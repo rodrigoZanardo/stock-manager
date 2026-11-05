@@ -13,7 +13,8 @@
     "main": "Main",
     "audit": "Audit",
     "purchases": "Purchases",
-    "suppliers": "Suppliers"
+    "suppliers": "Suppliers",
+    "counts": "Stock counts"
   },
   "common": {
     "save": "Save",
@@ -125,6 +126,7 @@
     "NOT_ENOUGH_STOCK": "Not enough stock: {available} available, {requested} requested.",
     "STOCK_CHANGED": "Stock changed while saving and is no longer enough. Reload and try again.",
     "PRODUCT_LOCATION_INVALID": "Bin location must look like R01-B03-A04-P060-N1.",
+    "PRODUCT_IN_PURCHASE_ORDER": "This product is on a purchase order and cannot be deleted.",
     "PRODUCT_HAS_MOVEMENTS": "This product has stock movements and cannot be deleted.",
     "PRODUCT_NOT_FOUND": "Product not found.",
     "EMAIL_INVALID": "Email is not valid.",
@@ -154,7 +156,13 @@
     "PURCHASE_ORDER_DUPLICATE_ITEM": "Each product can appear only once in a purchase order.",
     "PURCHASE_ORDER_STATUS": "This purchase order changed status and no longer allows this. Reload the page.",
     "PURCHASE_NOTHING_TO_SUGGEST": "No product is below its minimum, so there is nothing to buy.",
-    "PURCHASE_ORDER_NOT_FOUND": "Purchase order not found."
+    "PURCHASE_ORDER_NOT_FOUND": "Purchase order not found.",
+    "INVENTORY_COUNT_EMPTY": "There are no products to count. Add a product first.",
+    "INVENTORY_COUNT_STATUS": "This inventory count is already closed. Reload the page.",
+    "INVENTORY_NOTHING_COUNTED": "Enter at least one counted quantity before applying the count.",
+    "COUNTED_INVALID": "Use a whole number of 0 or more.",
+    "COUNTED_BELOW_RESERVED": "Counted {counted} is below the {reserved} units reserved for orders. Count again or release the orders first.",
+    "INVENTORY_COUNT_NOT_FOUND": "Inventory count not found."
   },
   "alerts": {
     "lowStock": "{count, plural, one {# product is} other {# products are}} at or below the minimum.",
@@ -216,7 +224,11 @@
       "PURCHASE_UPDATED": "Purchase edited",
       "PURCHASE_ORDERED": "Purchase sent",
       "PURCHASE_RECEIVED": "Purchase received",
-      "PURCHASE_CANCELLED": "Purchase cancelled"
+      "PURCHASE_CANCELLED": "Purchase cancelled",
+      "INVENTORY_STARTED": "Count started",
+      "INVENTORY_COUNTED": "Count entered",
+      "INVENTORY_APPLIED": "Count applied",
+      "INVENTORY_CANCELLED": "Count cancelled"
     },
     "price": "price",
     "cost": "cost"
@@ -274,6 +286,39 @@
       "DRAFT": "Draft",
       "ORDERED": "Ordered",
       "RECEIVED": "Received",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "counts": {
+    "title": "Stock counts",
+    "start": "Start count",
+    "startHint": "Takes a snapshot of every product's quantity. Count the shelves, enter what you find, review the differences, then apply.",
+    "starting": "Starting…",
+    "empty": "No counts yet. Start one to compare the shelves with the system.",
+    "number": "Number",
+    "status": "Status",
+    "created": "Started",
+    "counted": "Counted",
+    "progress": "{counted} of {total}",
+    "back": "All counts",
+    "count": "Stock count #{number}",
+    "sku": "SKU",
+    "name": "Product",
+    "location": "Location",
+    "expected": "Expected",
+    "difference": "Difference",
+    "noLocation": "—",
+    "countedOf": "Counted quantity of {name}",
+    "save": "Save counts",
+    "nothingEntered": "Enter at least one counted quantity.",
+    "apply": "Apply count",
+    "applyConfirm": "Apply this count? Every counted product is set to its counted quantity with a stock movement.",
+    "cancel": "Cancel count",
+    "cancelConfirm": "Cancel this count? Stock does not change.",
+    "hint": "Leave a field empty to skip that product. Differences are booked as stock in or out when the count is applied.",
+    "statuses": {
+      "OPEN": "Open",
+      "APPLIED": "Applied",
       "CANCELLED": "Cancelled"
     }
   }

@@ -89,8 +89,9 @@ export class PrismaProductRepository extends ProductRepository {
     try {
       await this.db.$transaction([this.db.product.delete({ where: { id } }), this.db.auditEntry.create({ data: auditData(audit) })]);
     } catch (e) {
-      // P2003: a movement was saved after the use case checked the history; the foreign key protects it
-      if (hasPrismaCode(e, 'P2003')) throw new AppError('PRODUCT_HAS_MOVEMENTS');
+      // P2003: a row still points to the product. A purchase order item is the case the use case does not check; otherwise a movement was saved after it checked the history
+      if (hasPrismaCode(e, 'P2003'))
+        throw new AppError((await this.db.purchaseOrderItem.count({ where: { productId: id }, take: 1 })) > 0 ? 'PRODUCT_IN_PURCHASE_ORDER' : 'PRODUCT_HAS_MOVEMENTS');
       throw e;
     }
   }

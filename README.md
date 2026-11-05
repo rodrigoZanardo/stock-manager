@@ -1,7 +1,7 @@
 # Stock Manager
 
 [![CI](https://github.com/rodrigoZanardo/stock-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/rodrigoZanardo/stock-manager/actions/workflows/ci.yml)
-![NestJS](https://img.shields.io/badge/NestJS-10-E0234E?logo=nestjs)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs)
 ![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=nextdotjs)
 ![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
@@ -187,3 +187,4 @@ Tests run on every push with GitHub Actions. Rules for contributors and AI codin
 - [x] Split into microservices: auth, stock, reports
 - [x] Audit trail: who changed what and when (products, stock, users, logins) and one structured log line per request
 - [x] Online demo on Render (see the top of this page)
+- [x] Stock counts: snapshot, enter counted quantities, review differences, apply once as IN/OUT movements (never below reserved units)

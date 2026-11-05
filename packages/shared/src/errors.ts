@@ -15,6 +15,7 @@ const CATALOG = {
   STOCK_CHANGED: { kind: 'rule', message: 'Stock changed while saving and is no longer enough. Reload and try again.' },
   PRODUCT_LOCATION_INVALID: { kind: 'rule', message: 'Bin location must look like R01-B03-A04-P060-N1.' },
   PRODUCT_HAS_MOVEMENTS: { kind: 'rule', message: 'Product has stock movements and cannot be deleted.' },
+  PRODUCT_IN_PURCHASE_ORDER: { kind: 'rule', message: 'Product is on a purchase order and cannot be deleted.' },
   PRODUCT_NOT_FOUND: { kind: 'not_found', message: 'Product not found.' },
   PRICE_INVALID: { kind: 'rule', message: 'Price must be a whole number of cents from 0 to {max}.' },
   COST_INVALID: { kind: 'rule', message: 'Cost must be a whole number of cents from 0 to {max}.' },
@@ -29,6 +30,13 @@ const CATALOG = {
   PURCHASE_ORDER_STATUS: { kind: 'rule', message: 'Not allowed while the purchase order is {status}.' },
   PURCHASE_NOTHING_TO_SUGGEST: { kind: 'rule', message: 'No product is below its minimum, so there is nothing to buy.' },
   PURCHASE_ORDER_NOT_FOUND: { kind: 'not_found', message: 'Purchase order not found.' },
+  // inventory counts
+  INVENTORY_COUNT_EMPTY: { kind: 'rule', message: 'There are no products to count.' },
+  INVENTORY_COUNT_STATUS: { kind: 'rule', message: 'Not allowed while the inventory count is {status}.' },
+  INVENTORY_NOTHING_COUNTED: { kind: 'rule', message: 'Enter at least one counted quantity before applying the count.' },
+  COUNTED_INVALID: { kind: 'rule', message: 'Counted quantity must be a whole number of 0 or more.' },
+  COUNTED_BELOW_RESERVED: { kind: 'rule', message: 'Counted quantity {counted} is below the {reserved} units reserved for orders.' },
+  INVENTORY_COUNT_NOT_FOUND: { kind: 'not_found', message: 'Inventory count not found.' },
   // users and login
   EMAIL_INVALID: { kind: 'rule', message: 'Email is not valid.' },
   PASSWORD_TOO_SHORT: { kind: 'rule', message: 'Password must have at least {min} characters.' },

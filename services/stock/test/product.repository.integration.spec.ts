@@ -21,6 +21,8 @@ describeWithDatabase('PrismaProductRepository on a real database', () => {
 
   beforeEach(async () => {
     await db.purchaseOrderItem.deleteMany();
+    await db.purchaseOrder.deleteMany();
+    await db.supplier.deleteMany();
     await db.reservation.deleteMany();
     await db.movement.deleteMany();
     await db.auditEntry.deleteMany();
@@ -29,6 +31,16 @@ describeWithDatabase('PrismaProductRepository on a real database', () => {
 
   afterAll(async () => {
     await db.$disconnect();
+  });
+
+  it('refuses to delete a product on a purchase order with PRODUCT_IN_PURCHASE_ORDER, not PRODUCT_HAS_MOVEMENTS', async () => {
+    const product = Product.create({ id: randomUUID(), sku: 'PO-ONLY', name: 'On order', minQuantity: 0 });
+    await repo.create(product, audit(product.id, 'STOCK_IN'));
+    const supplier = await db.supplier.create({ data: { name: 'Auto Sul' } });
+    await db.purchaseOrder.create({ data: { supplierId: supplier.id, status: 'DRAFT', items: { create: [{ productId: product.id, quantity: 1, unitCost: 100 }] } } });
+
+    await expect(repo.delete(product.id, audit(product.id, 'STOCK_OUT'))).rejects.toMatchObject({ code: 'PRODUCT_IN_PURCHASE_ORDER' });
+    expect(await repo.findById(product.id)).not.toBeNull();
   });
 
   it('refuses a withdrawal from a stale copy: the database guard, not the in-memory check, stops it', async () => {

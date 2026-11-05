@@ -9,9 +9,10 @@ export const AUDIT_ACTIONS = [
   'PRODUCT_CREATED', 'PRODUCT_UPDATED', 'PRODUCT_DELETED', 'STOCK_IN', 'STOCK_OUT', 'STOCK_RESERVED', 'STOCK_RELEASED',
   'SUPPLIER_CREATED', 'SUPPLIER_UPDATED', 'SUPPLIER_DELETED',
   'PURCHASE_CREATED', 'PURCHASE_UPDATED', 'PURCHASE_ORDERED', 'PURCHASE_RECEIVED', 'PURCHASE_CANCELLED',
+  'INVENTORY_STARTED', 'INVENTORY_COUNTED', 'INVENTORY_APPLIED', 'INVENTORY_CANCELLED',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
-/** What a write records next to its change, in the same transaction. `productId` is null for supplier and purchase entries. */
+/** What a write records next to its change, in the same transaction. `productId` is null for supplier, purchase and inventory count entries. */
 export type AuditRecord = { action: AuditAction; productId: string | null; details: JsonObject; actor: Actor };
 export type OrderLine = { product: Product; quantity: number; note: string; audit: AuditRecord };
 export type AuditEntry = { id: string; action: AuditAction; productId: string | null; details: JsonObject; actorEmail: string; createdAt: Date };

@@ -28,6 +28,7 @@ model Product {
   movements     Movement[]
   reservations  Reservation[]
   purchaseItems PurchaseOrderItem[]
+  countItems    InventoryCountItem[]
 }
 
 model Movement {
@@ -107,4 +108,26 @@ model PurchaseOrderItem {
   unitCost  Int
 
   @@id([orderId, productId])
+}
+
+model InventoryCount {
+  id        String               @id @default(uuid())
+  number    Int                  @unique @default(autoincrement())
+  status    String // OPEN | APPLIED | CANCELLED
+  createdAt DateTime             @default(now())
+  items     InventoryCountItem[]
+}
+
+/// Deleting a product drops its line: a product without movements has nothing to correct.
+model InventoryCountItem {
+  countId   String
+  count     InventoryCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Quantity when the count started
+  expected  Int
+  /// null until entered
+  counted   Int?
+
+  @@id([countId, productId])
 }

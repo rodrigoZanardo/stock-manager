@@ -35,7 +35,8 @@ export type Dashboard = {
 
 export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_RESERVED' | 'STOCK_RELEASED'
   | 'SUPPLIER_CREATED' | 'SUPPLIER_UPDATED' | 'SUPPLIER_DELETED'
-  | 'PURCHASE_CREATED' | 'PURCHASE_UPDATED' | 'PURCHASE_ORDERED' | 'PURCHASE_RECEIVED' | 'PURCHASE_CANCELLED';
+  | 'PURCHASE_CREATED' | 'PURCHASE_UPDATED' | 'PURCHASE_ORDERED' | 'PURCHASE_RECEIVED' | 'PURCHASE_CANCELLED'
+  | 'INVENTORY_STARTED' | 'INVENTORY_COUNTED' | 'INVENTORY_APPLIED' | 'INVENTORY_CANCELLED';
 export type AuthAuditAction = 'USER_CREATED' | 'LOGIN_SUCCEEDED' | 'LOGIN_FAILED';
 export type AuditEntry<A> = { id: string; action: A; productId: string | null; details: Record<string, unknown>; actorEmail: string | null; createdAt: string };
 
@@ -52,6 +53,10 @@ export type PurchaseOrder = {
   items: (PurchaseItemInput & { sku: string; name: string })[]; total: number; createdAt: string;
 };
 export type PurchaseChange = 'send' | 'cancel' | 'receive';
+export type CountStatus = 'OPEN' | 'APPLIED' | 'CANCELLED';
+export type CountItem = { productId: string; sku: string; name: string; location: string | null; expected: number; counted: number | null; difference: number | null };
+export type InventoryCount = { id: string; number: number; status: CountStatus; items: CountItem[]; createdAt: string };
+export type CountChange = 'apply' | 'cancel';
 export type UserRecord = { id: string; email: string; role: Role };
 
 export const TOKEN_COOKIE = 'token';
@@ -104,6 +109,7 @@ async function send(path: string, init: { method?: string; body?: unknown } = {}
 const productPath = (id: string) => `/products/${encodeURIComponent(id)}`;
 const supplierPath = (id: string) => `/suppliers/${encodeURIComponent(id)}`;
 const orderPath = (id: string) => `/purchase-orders/${encodeURIComponent(id)}`;
+const countPath = (id: string) => `/inventory-counts/${encodeURIComponent(id)}`;
 
 async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   return (await send(path, init)).json();
@@ -156,6 +162,13 @@ export const api = {
     request<PurchaseOrder>(orderPath(id), { method: 'PATCH', body: { items } }),
   changePurchaseOrder: (id: string, change: PurchaseChange) =>
     request<PurchaseOrder>(`${orderPath(id)}/${change}`, { method: 'POST' }),
+  inventoryCounts: () => request<InventoryCount[]>('/inventory-counts'),
+  inventoryCount: (id: string) => request<InventoryCount>(countPath(id)),
+  startInventoryCount: () => request<InventoryCount>('/inventory-counts', { method: 'POST' }),
+  enterCounted: (id: string, items: { productId: string; counted: number }[]) =>
+    request<InventoryCount>(countPath(id), { method: 'PATCH', body: { items } }),
+  changeInventoryCount: (id: string, change: CountChange) =>
+    request<InventoryCount>(`${countPath(id)}/${change}`, { method: 'POST' }),
   auditStock: () => request<AuditEntry<StockAuditAction>[]>('/audit/stock?limit=100'),
   auditAuth: () => request<AuditEntry<AuthAuditAction>[]>('/audit/auth?limit=100'),
 };

@@ -7,7 +7,7 @@ import { api, ApiError, currentRole, isRole, type AuditEntry, type AuthAuditActi
 type Action = StockAuditAction | AuthAuditAction;
 type Entry = AuditEntry<Action>;
 
-const DANGER: ReadonlySet<Action> = new Set(['LOGIN_FAILED', 'PRODUCT_DELETED', 'SUPPLIER_DELETED', 'PURCHASE_CANCELLED']);
+const DANGER: ReadonlySet<Action> = new Set(['LOGIN_FAILED', 'PRODUCT_DELETED', 'SUPPLIER_DELETED', 'PURCHASE_CANCELLED', 'INVENTORY_CANCELLED']);
 
 /** Reads a key from untyped audit details without trusting their shape. */
 function field(source: unknown, key: string): unknown {
@@ -63,6 +63,11 @@ function summarize(e: Entry, l: Labels): string {
       const total = field(d, 'total');
       return [`#${text(field(d, 'number'))}`, text(field(d, 'supplier')), typeof total === 'number' ? l.money(total) : ''].filter(Boolean).join(' · ');
     }
+    case 'INVENTORY_STARTED':
+    case 'INVENTORY_COUNTED':
+    case 'INVENTORY_APPLIED':
+    case 'INVENTORY_CANCELLED':
+      return `#${text(field(d, 'number'))}`;
     case 'USER_CREATED':
       return l.userAs(text(field(d, 'email')), text(field(d, 'role')));
     default:

@@ -80,6 +80,21 @@ export class Product {
     this.props.cost = validCents(cost, 'COST_INVALID');
   }
 
+  /** A stock count may not leave fewer units than are held for orders. */
+  checkCounted(counted: number): void {
+    if (!Number.isInteger(counted) || counted < 0) throw new AppError('COUNTED_INVALID');
+    if (counted < this.props.reserved) throw new AppError('COUNTED_BELOW_RESERVED', { counted, reserved: this.props.reserved });
+  }
+
+  /** Sets the quantity to what was counted; returns the movement that books the difference, or null when there is none. */
+  adjustTo(counted: number): { type: MovementType; quantity: number } | null {
+    this.checkCounted(counted);
+    const difference = counted - this.props.quantity;
+    this.props.quantity = counted;
+    if (difference === 0) return null;
+    return { type: difference > 0 ? 'IN' : 'OUT', quantity: Math.abs(difference) };
+  }
+
   release(quantity: number): void {
     this.props.reserved = Math.max(0, this.props.reserved - quantity);
   }

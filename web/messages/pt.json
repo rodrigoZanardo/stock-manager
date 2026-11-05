@@ -13,7 +13,8 @@
     "main": "Principal",
     "audit": "Auditoria",
     "purchases": "Compras",
-    "suppliers": "Fornecedores"
+    "suppliers": "Fornecedores",
+    "counts": "Contagem de inventário"
   },
   "common": {
     "save": "Salvar",
@@ -125,6 +126,7 @@
     "NOT_ENOUGH_STOCK": "Estoque insuficiente: {available} disponíveis, {requested} solicitados.",
     "STOCK_CHANGED": "O estoque mudou enquanto você salvava e não é mais suficiente. Recarregue e tente de novo.",
     "PRODUCT_LOCATION_INVALID": "O endereço deve seguir o formato R01-B03-A04-P060-N1.",
+    "PRODUCT_IN_PURCHASE_ORDER": "Este produto está em um pedido de compra e não pode ser excluído.",
     "PRODUCT_HAS_MOVEMENTS": "Este produto tem movimentações e não pode ser excluído.",
     "PRODUCT_NOT_FOUND": "Produto não encontrado.",
     "EMAIL_INVALID": "E-mail inválido.",
@@ -154,7 +156,13 @@
     "PURCHASE_ORDER_DUPLICATE_ITEM": "Cada produto só pode aparecer uma vez no pedido.",
     "PURCHASE_ORDER_STATUS": "Este pedido mudou de status e não permite mais esta ação. Recarregue a página.",
     "PURCHASE_NOTHING_TO_SUGGEST": "Nenhum produto está abaixo do mínimo, então não há o que comprar.",
-    "PURCHASE_ORDER_NOT_FOUND": "Pedido de compra não encontrado."
+    "PURCHASE_ORDER_NOT_FOUND": "Pedido de compra não encontrado.",
+    "INVENTORY_COUNT_EMPTY": "Não há produtos para contar. Cadastre um produto primeiro.",
+    "INVENTORY_COUNT_STATUS": "Esta contagem já foi encerrada. Recarregue a página.",
+    "INVENTORY_NOTHING_COUNTED": "Informe ao menos uma quantidade contada antes de aplicar a contagem.",
+    "COUNTED_INVALID": "Use um número inteiro igual ou maior que 0.",
+    "COUNTED_BELOW_RESERVED": "A contagem {counted} é menor que as {reserved} unidades reservadas para pedidos. Conte de novo ou libere os pedidos antes.",
+    "INVENTORY_COUNT_NOT_FOUND": "Contagem de inventário não encontrada."
   },
   "alerts": {
     "lowStock": "{count, plural, one {# produto está} other {# produtos estão}} no mínimo ou abaixo dele.",
@@ -216,7 +224,11 @@
       "PURCHASE_UPDATED": "Compra editada",
       "PURCHASE_ORDERED": "Compra enviada",
       "PURCHASE_RECEIVED": "Compra recebida",
-      "PURCHASE_CANCELLED": "Compra cancelada"
+      "PURCHASE_CANCELLED": "Compra cancelada",
+      "INVENTORY_STARTED": "Contagem iniciada",
+      "INVENTORY_COUNTED": "Contagem lançada",
+      "INVENTORY_APPLIED": "Contagem aplicada",
+      "INVENTORY_CANCELLED": "Contagem cancelada"
     },
     "price": "preço",
     "cost": "custo"
@@ -275,6 +287,39 @@
       "ORDERED": "Enviado",
       "RECEIVED": "Recebido",
       "CANCELLED": "Cancelado"
+    }
+  },
+  "counts": {
+    "title": "Contagem de inventário",
+    "start": "Iniciar contagem",
+    "startHint": "Registra a quantidade atual de cada produto. Conte as prateleiras, lance o que encontrar, revise as diferenças e aplique.",
+    "starting": "Iniciando…",
+    "empty": "Nenhuma contagem ainda. Inicie uma para comparar as prateleiras com o sistema.",
+    "number": "Número",
+    "status": "Situação",
+    "created": "Início",
+    "counted": "Contado",
+    "progress": "{counted} de {total}",
+    "back": "Todas as contagens",
+    "count": "Contagem de inventário #{number}",
+    "sku": "SKU",
+    "name": "Produto",
+    "location": "Endereço",
+    "expected": "Esperado",
+    "difference": "Diferença",
+    "noLocation": "—",
+    "countedOf": "Quantidade contada de {name}",
+    "save": "Salvar contagem",
+    "nothingEntered": "Informe ao menos uma quantidade contada.",
+    "apply": "Aplicar contagem",
+    "applyConfirm": "Aplicar esta contagem? Cada produto contado passa a ter a quantidade contada, com uma movimentação de estoque.",
+    "cancel": "Cancelar contagem",
+    "cancelConfirm": "Cancelar esta contagem? O estoque não muda.",
+    "hint": "Deixe o campo vazio para pular o produto. As diferenças viram entradas ou saídas quando a contagem é aplicada.",
+    "statuses": {
+      "OPEN": "Aberta",
+      "APPLIED": "Aplicada",
+      "CANCELLED": "Cancelada"
     }
   }
 }
