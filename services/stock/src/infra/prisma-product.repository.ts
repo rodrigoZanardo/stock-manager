@@ -5,7 +5,7 @@ import { MovementType, Product } from '../domain/product';
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from './prisma.service';
 
-type Row = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null };
+type Row = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null };
 const toDomain = (r: Row) => Product.restore(r);
 /** The column is a plain string; anything else than IN/OUT means corrupted data, not a user error. */
 function toType(type: string): MovementType {
@@ -53,7 +53,7 @@ export class PrismaProductRepository extends ProductRepository {
     try {
       await this.db.$transaction([
         this.db.product.create({
-          data: { id: p.id, sku: p.sku, name: p.name, quantity: p.quantity, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity },
+          data: { id: p.id, sku: p.sku, name: p.name, quantity: p.quantity, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location },
         }),
         this.db.auditEntry.create({ data: auditData(audit) }),
       ]);
@@ -66,7 +66,7 @@ export class PrismaProductRepository extends ProductRepository {
 
   async update(p: Product, audit: AuditRecord) {
     await this.db.$transaction([
-      this.db.product.update({ where: { id: p.id }, data: { name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity } }),
+      this.db.product.update({ where: { id: p.id }, data: { name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location } }),
       this.db.auditEntry.create({ data: auditData(audit) }),
     ]);
   }

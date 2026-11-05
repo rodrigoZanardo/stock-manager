@@ -7,6 +7,8 @@ export class UpdateProductDto {
   @ApiProperty({ example: 5 }) @IsInt() @Min(0) minQuantity!: number;
   @ApiPropertyOptional({ example: 50, nullable: true, type: Number, description: 'Empty or null means no upper limit.' })
   @IsOptional() @IsInt() @Min(1) maxQuantity?: number | null;
+  @ApiPropertyOptional({ example: 'R01-B03-A04-P060-N1', nullable: true, type: String, description: 'Bin location: Rua-Bloco-Andar-Posição-Nível. Empty or null clears it.' })
+  @IsOptional() @IsString() @MaxLength(32) location?: string | null;
 }
 
 export class CreateProductDto extends UpdateProductDto {
@@ -37,5 +39,6 @@ export class ProductResponse {
   @ApiProperty({ description: 'quantity - reserved (never below 0): what a stock OUT or a new order can take' }) available!: number;
   @ApiProperty() minQuantity!: number;
   @ApiProperty({ type: Number, nullable: true }) maxQuantity!: number | null;
+  @ApiProperty({ type: String, nullable: true, example: 'R01-B03-A04-P060-N1' }) location!: string | null;
   @ApiProperty({ enum: STOCK_STATUSES }) status!: StockStatus;
 }

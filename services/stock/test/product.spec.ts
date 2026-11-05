@@ -39,6 +39,27 @@ describe('product CRUD', () => {
     expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 3, maxQuantity: null }, admin)).maxQuantity).toBeNull();
   });
 
+  it('normalises a bin location and treats empty as none', async () => {
+    expect((await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, location: ' r01-b03-a04-p060-n1 ' }, admin)).location).toBe('R01-B03-A04-P060-N1');
+    expect((await create.execute({ sku: 'KB-002', name: 'Keyboard', minQuantity: 0, location: '  ' }, admin)).location).toBeNull();
+    expect((await create.execute({ sku: 'KB-003', name: 'Keyboard', minQuantity: 0 }, admin)).location).toBeNull();
+  });
+
+  it.each(['R1-B03-A04-P060-N1', 'R01-B03-A04-P60-N1', 'R01-B03-A04-P060-N12', 'R01B03A04P060N1', 'X01-B03-A04-P060-N1'])(
+    'rejects the bin location %p', async (location) => {
+      await expect(create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, location }, admin))
+        .rejects.toMatchObject({ code: 'PRODUCT_LOCATION_INVALID' });
+    });
+
+  it('keeps the bin location when an update leaves it out, and clears it on null or empty', async () => {
+    const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, location: 'R01-B03-A04-P060-N1' }, admin);
+    const update = new UpdateProductUseCase(repo);
+    expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, location: undefined }, admin)).location).toBe('R01-B03-A04-P060-N1');
+    expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, location: '' }, admin)).location).toBeNull();
+    await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, location: 'R02-B01-A01-P001-N2' }, admin);
+    expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, location: null }, admin)).location).toBeNull();
+  });
+
   it('rejects an empty name or negative minimum on update', async () => {
     const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 2 }, admin);
     const update = new UpdateProductUseCase(repo);
@@ -135,7 +156,7 @@ describe('stock rules', () => {
 });
 
 describe('reservations', () => {
-  const product = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: null });
+  const product = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: null, location: null });
 
   it('reserves up to the available units and releases them', () => {
     const p = product(5);
@@ -177,12 +198,12 @@ describe('SKU rules', () => {
 
 describe('product limits', () => {
   it('reports LOW, OK and OVER against min and max', () => {
-    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: 10 }).status;
+    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: 10, location: null }).status;
     expect([at(2), at(3), at(10), at(11)]).toEqual(['LOW', 'OK', 'OK', 'OVER']);
   });
 
   it('LOW at zero stock with minimum zero, so an empty shelf is always flagged', () => {
-    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, reserved: 0, minQuantity: 0, maxQuantity: null }).status).toBe('LOW');
+    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, reserved: 0, minQuantity: 0, maxQuantity: null, location: null }).status).toBe('LOW');
   });
 
   it('accepts a maximum below the current stock on update and then reports OVER', async () => {
@@ -224,15 +245,15 @@ describe('audit trail', () => {
     const p = await new CreateProductUseCase(repo).execute({ sku: 'kb-001', name: 'Keyboard', minQuantity: 2 }, admin);
     expect(repo.audit).toEqual([{
       action: 'PRODUCT_CREATED', productId: p.id, actor: admin,
-      details: { sku: 'KB-001', name: 'Keyboard', minQuantity: 2, maxQuantity: null, quantity: 0 },
+      details: { sku: 'KB-001', name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null, quantity: 0 },
     }]);
 
     await new UpdateProductUseCase(repo).execute({ id: p.id, name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40 }, admin);
     expect(repo.audit[1]).toEqual({
       action: 'PRODUCT_UPDATED', productId: p.id, actor: admin,
       details: {
-        before: { name: 'Keyboard', minQuantity: 2, maxQuantity: null },
-        after: { name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40 },
+        before: { name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null },
+        after: { name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40, location: null },
       },
     });
 

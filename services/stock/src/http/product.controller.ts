@@ -25,6 +25,7 @@ const toResponse = (p: Product): ProductResponse => ({
   available: p.available,
   minQuantity: p.minQuantity,
   maxQuantity: p.maxQuantity,
+  location: p.location,
   status: p.status,
 });
 

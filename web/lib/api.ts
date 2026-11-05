@@ -8,7 +8,7 @@ export const isRole = (value: string | undefined): value is Role => ROLES.some((
 export type MovementType = 'IN' | 'OUT';
 
 export type StockStatus = 'LOW' | 'OK' | 'OVER';
-export type Product = { id: string; sku: string; name: string; quantity: number; reserved: number; available: number; minQuantity: number; maxQuantity: number | null; status: StockStatus };
+export type Product = { id: string; sku: string; name: string; quantity: number; reserved: number; available: number; minQuantity: number; maxQuantity: number | null; location: string | null; status: StockStatus };
 export type InventoryRow = {
   productId: string;
   sku: string;
@@ -37,7 +37,7 @@ export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_
 export type AuthAuditAction = 'USER_CREATED' | 'LOGIN_SUCCEEDED' | 'LOGIN_FAILED';
 export type AuditEntry<A> = { id: string; action: A; productId: string | null; details: Record<string, unknown>; actorEmail: string | null; createdAt: string };
 
-export type ProductInput = { name: string; minQuantity: number; maxQuantity: number | null };
+export type ProductInput = { name: string; minQuantity: number; maxQuantity: number | null; location: string | null };
 export type UserRecord = { id: string; email: string; role: Role };
 
 export const TOKEN_COOKIE = 'token';

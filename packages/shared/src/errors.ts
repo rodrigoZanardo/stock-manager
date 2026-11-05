@@ -13,6 +13,7 @@ const CATALOG = {
   QUANTITY_INVALID: { kind: 'rule', message: 'Quantity must be a whole number greater than zero.' },
   NOT_ENOUGH_STOCK: { kind: 'rule', message: 'Not enough stock: {available} available, {requested} requested.' },
   STOCK_CHANGED: { kind: 'rule', message: 'Stock changed while saving and is no longer enough. Reload and try again.' },
+  PRODUCT_LOCATION_INVALID: { kind: 'rule', message: 'Bin location must look like R01-B03-A04-P060-N1.' },
   PRODUCT_HAS_MOVEMENTS: { kind: 'rule', message: 'Product has stock movements and cannot be deleted.' },
   PRODUCT_NOT_FOUND: { kind: 'not_found', message: 'Product not found.' },
   // users and login

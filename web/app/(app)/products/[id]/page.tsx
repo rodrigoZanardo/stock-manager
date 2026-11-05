@@ -27,6 +27,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="page-title">{product.name}</h1>
         <span className="font-mono text-sm text-muted">{product.sku}</span>
+        {product.location && (
+          <span className="font-mono text-sm text-muted">{t('products.location')} {product.location}</span>
+        )}
         <StockStatus status={product.status} />
         <span className="ml-auto text-sm text-muted tabular-nums">
           {t('products.reserved')} {product.reserved} · {t('products.available')} {product.available}

@@ -28,6 +28,7 @@ export default async function ProductsPage() {
                 <tr>
                   <th className="th">{t('sku')}</th>
                   <th className="th">{t('name')}</th>
+                  <th className="th">{t('location')}</th>
                   <th className="th text-right">{t('quantity')}</th>
                   <th className="th text-right">{t('reserved')}</th>
                   <th className="th text-right">{t('available')}</th>
@@ -43,6 +44,7 @@ export default async function ProductsPage() {
                     <td className="td">
                       <Link href={`/products/${p.id}`} className="link">{p.name}</Link>
                     </td>
+                    <td className="td font-mono text-xs text-muted">{p.location ?? '—'}</td>
                     <td className="td text-right tabular-nums">{p.quantity}</td>
                     <td className="td text-right tabular-nums text-muted">{p.reserved}</td>
                     <td className="td text-right tabular-nums">{p.available}</td>

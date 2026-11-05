@@ -2,11 +2,11 @@ import { AppError, type MovementType, type StockStatus } from '@stock/shared';
 
 export type { MovementType, StockStatus };
 
-/** What an admin can edit. `maxQuantity: null` means no upper limit. */
-export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null };
+/** What an admin can edit. `maxQuantity: null` means no upper limit; `location: null` (or empty) means no bin location. */
+export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null; location?: string | null };
 
 /** `reserved`: units promised to open Live Orders orders; still on the shelf, but not free to take. */
-type ProductProps = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null };
+type ProductProps = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null };
 
 /** Stock rules live here, not in the controller or the database. */
 export class Product {
@@ -18,11 +18,12 @@ export class Product {
     return new Product({ id: input.id, sku, quantity: 0, reserved: 0, ...validDetails(input) });
   }
 
-  /** SKU and quantity are not editable: quantity only changes through movements. Omitting the maximum keeps it; null removes it. */
+  /** SKU and quantity are not editable: quantity only changes through movements. Omitting the maximum or location keeps it; null removes it. */
   update(input: ProductDetails): void {
     // check the value, not the key: validated DTOs carry optional fields as present-but-undefined
     const maxQuantity = input.maxQuantity === undefined ? this.props.maxQuantity : input.maxQuantity;
-    Object.assign(this.props, validDetails({ ...input, maxQuantity }));
+    const location = input.location === undefined ? this.props.location : input.location;
+    Object.assign(this.props, validDetails({ ...input, maxQuantity, location }));
   }
 
   static restore(props: ProductProps): Product {
@@ -38,6 +39,7 @@ export class Product {
   get available() { return Math.max(0, this.props.quantity - this.props.reserved); }
   get minQuantity() { return this.props.minQuantity; }
   get maxQuantity() { return this.props.maxQuantity; }
+  get location() { return this.props.location; }
   // physical quantity on purpose: reserved units are still on the shelf, and a cancel gives them back, so restocking follows what is there
   get isLowStock() { return this.props.quantity <= this.props.minQuantity; }
   get status(): StockStatus {
@@ -82,5 +84,13 @@ function validDetails(input: ProductDetails) {
   if (!Number.isInteger(input.minQuantity) || input.minQuantity < 0) throw new AppError('MIN_QUANTITY_INVALID');
   if (maxQuantity !== null && (!Number.isInteger(maxQuantity) || maxQuantity <= input.minQuantity))
     throw new AppError('MAX_QUANTITY_INVALID', { min: input.minQuantity });
-  return { name, minQuantity: input.minQuantity, maxQuantity };
+  return { name, minQuantity: input.minQuantity, maxQuantity, location: validLocation(input.location) };
+}
+
+/** Bin location R<street>-B<block>-A<floor>-P<position>-N<level>, e.g. R01-B03-A04-P060-N1. Empty means none. */
+function validLocation(location: string | null | undefined): string | null {
+  const value = location?.trim().toUpperCase();
+  if (!value) return null;
+  if (!/^R\d{2}-B\d{2}-A\d{2}-P\d{3}-N\d$/.test(value)) throw new AppError('PRODUCT_LOCATION_INVALID');
+  return value;
 }

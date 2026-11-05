@@ -18,6 +18,8 @@ model Product {
   reserved     Int           @default(0)
   minQuantity  Int           @default(0)
   maxQuantity  Int?
+  /// Bin location R01-B03-A04-P060-N1 (Rua-Bloco-Andar-Posição-Nível); null when not shelved yet
+  location     String?
   createdAt    DateTime      @default(now())
   movements    Movement[]
   reservations Reservation[]

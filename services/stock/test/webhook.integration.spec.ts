@@ -96,7 +96,7 @@ describeWithDatabase('Live Orders delivery on a real database', () => {
     if (!product) throw new Error('seeded product missing');
     expect(product.available).toBe(1);
     // the in-memory check passes on a stale copy; the database guard still refuses
-    const stale = Product.restore({ id: product.id, sku: product.sku, name: product.name, quantity: 3, reserved: 0, minQuantity: 0, maxQuantity: null });
+    const stale = Product.restore({ id: product.id, sku: product.sku, name: product.name, quantity: 3, reserved: 0, minQuantity: 0, maxQuantity: null, location: null });
     stale.move('OUT', 2);
     await expect(repo.saveMovement(stale, { type: 'OUT', quantity: 2 }, { action: 'STOCK_OUT', productId: product.id, details: {}, actor: LIVE_ORDERS_ACTOR }))
       .rejects.toMatchObject({ code: 'STOCK_CHANGED' });
