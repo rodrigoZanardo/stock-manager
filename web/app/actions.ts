@@ -5,7 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { isLocale } from '@/i18n/locales';
-import { api, ApiError, type ApiFailure, type MovementType, type ProductInput, ROLE_COOKIE, type Role, TOKEN_COOKIE } from '@/lib/api';
+import {
+  api, ApiError, type ApiFailure, type MovementType, type ProductInput, type PurchaseChange, type PurchaseItemInput,
+  ROLE_COOKIE, type Role, type SupplierInput, TOKEN_COOKIE,
+} from '@/lib/api';
 
 export type ActionResult = { error?: ApiFailure };
 
@@ -83,4 +86,37 @@ export async function analyzeInventory(): Promise<ActionResult & { analysis?: st
 
 export async function createUser(input: { email: string; password: string; role: Role }): Promise<ActionResult> {
   return attempt(() => api.createUser(input));
+}
+
+export async function createSupplier(input: SupplierInput): Promise<ActionResult> {
+  return attempt(() => api.createSupplier(input));
+}
+
+export async function updateSupplier(id: string, input: SupplierInput): Promise<ActionResult> {
+  return attempt(() => api.updateSupplier(id, input));
+}
+
+export async function deleteSupplier(id: string): Promise<ActionResult> {
+  const result = await attempt(() => api.deleteSupplier(id));
+  if (!result.error) redirect('/suppliers');
+  return result;
+}
+
+/** Creates a draft (from the given items, or suggested from low stock) and opens it. */
+export async function createPurchaseOrder(input: { supplierId: string; items?: PurchaseItemInput[] }): Promise<ActionResult> {
+  let id: string | undefined;
+  const result = await attempt(async () => {
+    const { supplierId, items } = input;
+    id = (await (items ? api.createPurchaseOrder({ supplierId, items }) : api.suggestPurchaseOrder(supplierId))).id;
+  });
+  if (id) redirect(`/purchases/${id}`);
+  return result;
+}
+
+export async function updatePurchaseOrder(id: string, items: PurchaseItemInput[]): Promise<ActionResult> {
+  return attempt(() => api.updatePurchaseOrder(id, items));
+}
+
+export async function changePurchaseOrder(id: string, change: PurchaseChange): Promise<ActionResult> {
+  return attempt(() => api.changePurchaseOrder(id, change));
 }

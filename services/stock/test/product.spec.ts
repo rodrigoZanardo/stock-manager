@@ -60,6 +60,20 @@ describe('product CRUD', () => {
     expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, location: null }, admin)).location).toBeNull();
   });
 
+  it('keeps price and cost when an update leaves them out, and clears them on null', async () => {
+    const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, price: 4990, cost: 0 }, admin);
+    expect([p.price, p.cost]).toEqual([4990, 0]);
+    const update = new UpdateProductUseCase(repo);
+    expect((await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, price: undefined }, admin)).price).toBe(4990);
+    const cleared = await update.execute({ id: p.id, name: 'Keyboard', minQuantity: 0, price: null, cost: 10_000_000 }, admin);
+    expect([cleared.price, cleared.cost]).toEqual([null, 10_000_000]);
+  });
+
+  it.each([-1, 10_000_001, 1.5])('rejects the price or cost %p', async (value) => {
+    await expect(create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, price: value }, admin)).rejects.toMatchObject({ code: 'PRICE_INVALID' });
+    await expect(create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 0, cost: value }, admin)).rejects.toMatchObject({ code: 'COST_INVALID' });
+  });
+
   it('rejects an empty name or negative minimum on update', async () => {
     const p = await create.execute({ sku: 'KB-001', name: 'Keyboard', minQuantity: 2 }, admin);
     const update = new UpdateProductUseCase(repo);
@@ -156,7 +170,7 @@ describe('stock rules', () => {
 });
 
 describe('reservations', () => {
-  const product = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: null, location: null });
+  const product = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: null, location: null, price: null, cost: null });
 
   it('reserves up to the available units and releases them', () => {
     const p = product(5);
@@ -198,12 +212,12 @@ describe('SKU rules', () => {
 
 describe('product limits', () => {
   it('reports LOW, OK and OVER against min and max', () => {
-    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: 10, location: null }).status;
+    const at = (quantity: number) => Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity, reserved: 0, minQuantity: 2, maxQuantity: 10, location: null, price: null, cost: null }).status;
     expect([at(2), at(3), at(10), at(11)]).toEqual(['LOW', 'OK', 'OK', 'OVER']);
   });
 
   it('LOW at zero stock with minimum zero, so an empty shelf is always flagged', () => {
-    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, reserved: 0, minQuantity: 0, maxQuantity: null, location: null }).status).toBe('LOW');
+    expect(Product.restore({ id: '1', sku: 'A-1', name: 'A', quantity: 0, reserved: 0, minQuantity: 0, maxQuantity: null, location: null, price: null, cost: null }).status).toBe('LOW');
   });
 
   it('accepts a maximum below the current stock on update and then reports OVER', async () => {
@@ -245,15 +259,15 @@ describe('audit trail', () => {
     const p = await new CreateProductUseCase(repo).execute({ sku: 'kb-001', name: 'Keyboard', minQuantity: 2 }, admin);
     expect(repo.audit).toEqual([{
       action: 'PRODUCT_CREATED', productId: p.id, actor: admin,
-      details: { sku: 'KB-001', name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null, quantity: 0 },
+      details: { sku: 'KB-001', name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null, price: null, cost: null, quantity: 0 },
     }]);
 
     await new UpdateProductUseCase(repo).execute({ id: p.id, name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40 }, admin);
     expect(repo.audit[1]).toEqual({
       action: 'PRODUCT_UPDATED', productId: p.id, actor: admin,
       details: {
-        before: { name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null },
-        after: { name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40, location: null },
+        before: { name: 'Keyboard', minQuantity: 2, maxQuantity: null, location: null, price: null, cost: null },
+        after: { name: 'Wireless keyboard', minQuantity: 3, maxQuantity: 40, location: null, price: null, cost: null },
       },
     });
 

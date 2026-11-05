@@ -26,6 +26,8 @@ const toResponse = (p: Product): ProductResponse => ({
   minQuantity: p.minQuantity,
   maxQuantity: p.maxQuantity,
   location: p.location,
+  price: p.price,
+  cost: p.cost,
   status: p.status,
 });
 
@@ -73,7 +75,7 @@ export class ProductController {
 
   @Roles('ADMIN')
   @Patch(':id')
-  @ApiOperation({ summary: 'Change name and minimum or maximum (admin only). The SKU and the quantity do not change here.' })
+  @ApiOperation({ summary: 'Change name, minimum, maximum, location, price or cost (admin only). The SKU and the quantity do not change here.' })
   @ApiResponse({ status: 200, type: ProductResponse })
   @ApiErrorResponse(400, 'Invalid input, or the maximum is not above the minimum')
   @ApiErrorResponse(401, 'Missing or expired token')

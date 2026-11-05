@@ -20,6 +20,7 @@ describeWithDatabase('PrismaProductRepository on a real database', () => {
   });
 
   beforeEach(async () => {
+    await db.purchaseOrderItem.deleteMany();
     await db.reservation.deleteMany();
     await db.movement.deleteMany();
     await db.auditEntry.deleteMany();

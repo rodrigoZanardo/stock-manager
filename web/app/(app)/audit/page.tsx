@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
+import { money } from '@/lib/money';
 import { api, ApiError, currentRole, isRole, type AuditEntry, type AuthAuditAction, type StockAuditAction } from '@/lib/api';
 
 type Action = StockAuditAction | AuthAuditAction;
 type Entry = AuditEntry<Action>;
 
-const DANGER: ReadonlySet<Action> = new Set(['LOGIN_FAILED', 'PRODUCT_DELETED']);
+const DANGER: ReadonlySet<Action> = new Set(['LOGIN_FAILED', 'PRODUCT_DELETED', 'SUPPLIER_DELETED', 'PURCHASE_CANCELLED']);
 
 /** Reads a key from untyped audit details without trusting their shape. */
 function field(source: unknown, key: string): unknown {
@@ -16,7 +17,7 @@ function field(source: unknown, key: string): unknown {
 
 const text = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
 
-type Labels = { min: string; max: string; none: string; userAs: (email: string, role: string) => string };
+type Labels = { min: string; max: string; price: string; cost: string; none: string; money: (cents: number) => string; userAs: (email: string, role: string) => string };
 
 /** One-line human summary of an audit entry's details. */
 function summarize(e: Entry, l: Labels): string {
@@ -28,11 +29,12 @@ function summarize(e: Entry, l: Labels): string {
     case 'PRODUCT_UPDATED': {
       const before = field(d, 'before');
       const after = field(d, 'after');
-      const label: Record<string, string> = { name: '', minQuantity: l.min, maxQuantity: l.max };
+      const label: Record<string, string> = { name: '', minQuantity: l.min, maxQuantity: l.max, price: l.price, cost: l.cost };
+      const isMoney = (k: string) => k === 'price' || k === 'cost';
       return Object.keys(label)
         .filter((k) => field(before, k) !== field(after, k))
         .map((k) => {
-          const show = (v: unknown) => text(v) || l.none;
+          const show = (v: unknown) => (isMoney(k) && typeof v === 'number' ? l.money(v) : text(v) || l.none);
           return `${label[k]} ${show(field(before, k))} → ${show(field(after, k))}`.trim();
         })
         .join(' · ');
@@ -47,6 +49,19 @@ function summarize(e: Entry, l: Labels): string {
     case 'STOCK_RELEASED': {
       const note = text(field(d, 'note'));
       return `${text(field(d, 'quantity'))}${note ? ` · ${note}` : ''}`;
+    }
+    case 'SUPPLIER_CREATED':
+    case 'SUPPLIER_DELETED':
+      return text(field(d, 'name'));
+    case 'SUPPLIER_UPDATED':
+      return text(field(field(d, 'after'), 'name'));
+    case 'PURCHASE_CREATED':
+    case 'PURCHASE_UPDATED':
+    case 'PURCHASE_ORDERED':
+    case 'PURCHASE_RECEIVED':
+    case 'PURCHASE_CANCELLED': {
+      const total = field(d, 'total');
+      return [`#${text(field(d, 'number'))}`, text(field(d, 'supplier')), typeof total === 'number' ? l.money(total) : ''].filter(Boolean).join(' · ');
     }
     case 'USER_CREATED':
       return l.userAs(text(field(d, 'email')), text(field(d, 'role')));
@@ -79,6 +94,9 @@ export default async function AuditPage() {
   const labels: Labels = {
     min: t('min'),
     max: t('max'),
+    price: t('price'),
+    cost: t('cost'),
+    money: (cents) => money(format, cents),
     none: t('none'),
     userAs: (email, role) => t('as', { email, role: isRole(role) ? tUsers(role) : role }),
   };

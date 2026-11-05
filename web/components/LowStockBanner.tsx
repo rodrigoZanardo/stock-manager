@@ -16,7 +16,10 @@ export async function LowStockBanner() {
   return (
     <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md border-l-4 border-signal bg-panel px-4 py-3 text-sm">
       <span>{t('lowStock', { count: lowCount })}</span>
-      <Link href="/inventory" className="link">{t('review')}</Link>
+      <span className="flex gap-4">
+        <Link href="/inventory" className="link">{t('review')}</Link>
+        <Link href="/purchases#suggest" className="link">{t('suggestPurchase')}</Link>
+      </span>
     </div>
   );
 }

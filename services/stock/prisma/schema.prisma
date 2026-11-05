@@ -10,19 +10,24 @@ datasource db {
 }
 
 model Product {
-  id           String        @id @default(uuid())
-  sku          String        @unique
-  name         String
-  quantity     Int           @default(0)
+  id            String              @id @default(uuid())
+  sku           String              @unique
+  name          String
+  quantity      Int                 @default(0)
   /// Sum of this product's Reservation rows, kept in the same transaction so one UPDATE can guard quantity - reserved
-  reserved     Int           @default(0)
-  minQuantity  Int           @default(0)
-  maxQuantity  Int?
+  reserved      Int                 @default(0)
+  minQuantity   Int                 @default(0)
+  maxQuantity   Int?
   /// Bin location R01-B03-A04-P060-N1 (Rua-Bloco-Andar-Posição-Nível); null when not shelved yet
-  location     String?
-  createdAt    DateTime      @default(now())
-  movements    Movement[]
-  reservations Reservation[]
+  location      String?
+  /// Sale price in cents; Live Orders reads it
+  price         Int?
+  /// Last purchase cost in cents
+  cost          Int?
+  createdAt     DateTime            @default(now())
+  movements     Movement[]
+  reservations  Reservation[]
+  purchaseItems PurchaseOrderItem[]
 }
 
 model Movement {
@@ -43,7 +48,7 @@ model Movement {
 /// One row per write. No relation to Product on purpose: a deleted product keeps its trail.
 model AuditEntry {
   id         String   @id @default(uuid())
-  action     String // PRODUCT_CREATED | PRODUCT_UPDATED | PRODUCT_DELETED | STOCK_IN | STOCK_OUT | STOCK_RESERVED | STOCK_RELEASED
+  action     String // PRODUCT_* | STOCK_* | SUPPLIER_* | PURCHASE_*
   productId  String?
   details    Json
   actorId    String
@@ -67,6 +72,39 @@ model Reservation {
   quantity    Int
   orderNumber Int
   createdAt   DateTime @default(now())
+
+  @@id([orderId, productId])
+}
+
+model Supplier {
+  id        String          @id @default(uuid())
+  name      String          @unique
+  /// CNPJ, 14 digits without punctuation
+  document  String?
+  email     String?
+  phone     String?
+  createdAt DateTime        @default(now())
+  orders    PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  number     Int                 @unique @default(autoincrement())
+  supplierId String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  status     String // DRAFT | ORDERED | RECEIVED | CANCELLED
+  createdAt  DateTime            @default(now())
+  items      PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  quantity  Int
+  /// cents
+  unitCost  Int
 
   @@id([orderId, productId])
 }

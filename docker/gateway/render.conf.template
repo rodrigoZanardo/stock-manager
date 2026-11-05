@@ -13,6 +13,8 @@ server {
   location /audit/auth  { proxy_pass $auth; }
   location /products    { proxy_pass $stock; }
   location /movements   { proxy_pass $stock; }
+  location /suppliers   { proxy_pass $stock; }
+  location /purchase-orders { proxy_pass $stock; }
   location /webhooks/live-orders { proxy_pass $stock; }
   location /audit/stock { proxy_pass $stock; }
   location /dashboard   { proxy_pass $reports; }

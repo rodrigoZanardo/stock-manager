@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MOVEMENT_TYPES, type MovementType, STOCK_STATUSES, type StockStatus } from '@stock/shared';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { MAX_CENTS } from '../domain/product';
 
 export class UpdateProductDto {
   @ApiProperty({ example: 'Mechanical keyboard' }) @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
@@ -9,6 +10,10 @@ export class UpdateProductDto {
   @IsOptional() @IsInt() @Min(1) maxQuantity?: number | null;
   @ApiPropertyOptional({ example: 'R01-B03-A04-P060-N1', nullable: true, type: String, description: 'Bin location: Rua-Bloco-Andar-Posição-Nível. Empty or null clears it.' })
   @IsOptional() @IsString() @MaxLength(32) location?: string | null;
+  @ApiPropertyOptional({ example: 4990, nullable: true, type: Number, description: 'Sale price in cents. Omitted keeps it, null clears it.' })
+  @IsOptional() @IsInt() @Min(0) @Max(MAX_CENTS) price?: number | null;
+  @ApiPropertyOptional({ example: 3200, nullable: true, type: Number, description: 'Last purchase cost in cents. Omitted keeps it, null clears it.' })
+  @IsOptional() @IsInt() @Min(0) @Max(MAX_CENTS) cost?: number | null;
 }
 
 export class CreateProductDto extends UpdateProductDto {
@@ -40,5 +45,7 @@ export class ProductResponse {
   @ApiProperty() minQuantity!: number;
   @ApiProperty({ type: Number, nullable: true }) maxQuantity!: number | null;
   @ApiProperty({ type: String, nullable: true, example: 'R01-B03-A04-P060-N1' }) location!: string | null;
+  @ApiProperty({ type: Number, nullable: true, example: 4990, description: 'Sale price in cents' }) price!: number | null;
+  @ApiProperty({ type: Number, nullable: true, example: 3200, description: 'Last purchase cost in cents' }) cost!: number | null;
   @ApiProperty({ enum: STOCK_STATUSES }) status!: StockStatus;
 }

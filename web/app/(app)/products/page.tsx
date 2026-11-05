@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getFormatter, getTranslations } from 'next-intl/server';
 import { ProductForm } from '@/components/ProductForm';
 import { StockLevel } from '@/components/StockLevel';
 import { StockStatus } from '@/components/StockStatus';
 import { api, currentRole } from '@/lib/api';
+import { money } from '@/lib/money';
 
 export default async function ProductsPage() {
-  const [t, products, role] = await Promise.all([getTranslations('products'), api.products(), currentRole()]);
+  const [t, format, products, role] = await Promise.all([getTranslations('products'), getFormatter(), api.products(), currentRole()]);
   const isAdmin = role === 'ADMIN';
 
   return (
@@ -33,6 +34,7 @@ export default async function ProductsPage() {
                   <th className="th text-right">{t('reserved')}</th>
                   <th className="th text-right">{t('available')}</th>
                   <th className="th text-right">{t('minQuantity')}</th>
+                  <th className="th text-right">{t('price')}</th>
                   <th className="th">{t('status')}</th>
                   <th className="th w-48">{t('level')}</th>
                 </tr>
@@ -49,6 +51,7 @@ export default async function ProductsPage() {
                     <td className="td text-right tabular-nums text-muted">{p.reserved}</td>
                     <td className="td text-right tabular-nums">{p.available}</td>
                     <td className="td text-right tabular-nums text-muted">{p.minQuantity}</td>
+                    <td className="td text-right tabular-nums whitespace-nowrap">{p.price === null ? '—' : money(format, p.price)}</td>
                     <td className="td"><StockStatus status={p.status} /></td>
                     <td className="td"><StockLevel {...p} /></td>
                   </tr>

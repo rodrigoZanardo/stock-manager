@@ -2,11 +2,14 @@ import { AppError, type MovementType, type StockStatus } from '@stock/shared';
 
 export type { MovementType, StockStatus };
 
-/** What an admin can edit. `maxQuantity: null` means no upper limit; `location: null` (or empty) means no bin location. */
-export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null; location?: string | null };
+/** What an admin can edit. `maxQuantity: null` means no upper limit; `location: null` (or empty) means no bin location. Money is in cents. */
+export type ProductDetails = { name: string; minQuantity: number; maxQuantity?: number | null; location?: string | null; price?: number | null; cost?: number | null };
+
+/** Highest price or cost in cents: R$ 100.000,00. */
+export const MAX_CENTS = 10_000_000;
 
 /** `reserved`: units promised to open Live Orders orders; still on the shelf, but not free to take. */
-type ProductProps = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null };
+type ProductProps = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null; price: number | null; cost: number | null };
 
 /** Stock rules live here, not in the controller or the database. */
 export class Product {
@@ -23,7 +26,9 @@ export class Product {
     // check the value, not the key: validated DTOs carry optional fields as present-but-undefined
     const maxQuantity = input.maxQuantity === undefined ? this.props.maxQuantity : input.maxQuantity;
     const location = input.location === undefined ? this.props.location : input.location;
-    Object.assign(this.props, validDetails({ ...input, maxQuantity, location }));
+    const price = input.price === undefined ? this.props.price : input.price;
+    const cost = input.cost === undefined ? this.props.cost : input.cost;
+    Object.assign(this.props, validDetails({ ...input, maxQuantity, location, price, cost }));
   }
 
   static restore(props: ProductProps): Product {
@@ -40,6 +45,8 @@ export class Product {
   get minQuantity() { return this.props.minQuantity; }
   get maxQuantity() { return this.props.maxQuantity; }
   get location() { return this.props.location; }
+  get price() { return this.props.price; }
+  get cost() { return this.props.cost; }
   // physical quantity on purpose: reserved units are still on the shelf, and a cancel gives them back, so restocking follows what is there
   get isLowStock() { return this.props.quantity <= this.props.minQuantity; }
   get status(): StockStatus {
@@ -68,6 +75,11 @@ export class Product {
     this.props.reserved += quantity;
   }
 
+  /** A received purchase sets the last purchase cost. */
+  setCost(cost: number): void {
+    this.props.cost = validCents(cost, 'COST_INVALID');
+  }
+
   release(quantity: number): void {
     this.props.reserved = Math.max(0, this.props.reserved - quantity);
   }
@@ -84,7 +96,14 @@ function validDetails(input: ProductDetails) {
   if (!Number.isInteger(input.minQuantity) || input.minQuantity < 0) throw new AppError('MIN_QUANTITY_INVALID');
   if (maxQuantity !== null && (!Number.isInteger(maxQuantity) || maxQuantity <= input.minQuantity))
     throw new AppError('MAX_QUANTITY_INVALID', { min: input.minQuantity });
-  return { name, minQuantity: input.minQuantity, maxQuantity, location: validLocation(input.location) };
+  const price = input.price == null ? null : validCents(input.price, 'PRICE_INVALID');
+  const cost = input.cost == null ? null : validCents(input.cost, 'COST_INVALID');
+  return { name, minQuantity: input.minQuantity, maxQuantity, location: validLocation(input.location), price, cost };
+}
+
+function validCents(value: number, code: 'PRICE_INVALID' | 'COST_INVALID'): number {
+  if (!Number.isInteger(value) || value < 0 || value > MAX_CENTS) throw new AppError(code, { max: MAX_CENTS });
+  return value;
 }
 
 /** Bin location R<street>-B<block>-A<floor>-P<position>-N<level>, e.g. R01-B03-A04-P060-N1. Empty means none. */

@@ -5,7 +5,7 @@ import { MovementType, Product } from '../domain/product';
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from './prisma.service';
 
-type Row = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null };
+type Row = { id: string; sku: string; name: string; quantity: number; reserved: number; minQuantity: number; maxQuantity: number | null; location: string | null; price: number | null; cost: number | null };
 const toDomain = (r: Row) => Product.restore(r);
 /** The column is a plain string; anything else than IN/OUT means corrupted data, not a user error. */
 function toType(type: string): MovementType {
@@ -18,12 +18,26 @@ function toMovement({ id, type, quantity, note, actorEmail, createdAt }: Movemen
   return { id, type: toType(type), quantity, note, actorEmail, createdAt };
 }
 
-const auditData = (a: AuditRecord) => ({ action: a.action, productId: a.productId, details: a.details, actorId: a.actor.id, actorEmail: a.actor.email });
+export const auditData = (a: AuditRecord) => ({ action: a.action, productId: a.productId, details: a.details, actorId: a.actor.id, actorEmail: a.actor.email });
 
 type AuditRow = { id: string; action: string; productId: string | null; details: unknown; actorEmail: string; createdAt: Date };
 function toAuditEntry({ id, action, productId, details, actorEmail, createdAt }: AuditRow): AuditEntry {
   if (!isOneOf(AUDIT_ACTIONS, action) || !isJsonObject(details)) throw new Error(`Corrupted audit entry in database: ${id}`);
   return { id, action, productId, details, actorEmail, createdAt };
+}
+
+/** `guardReserved`: a user's OUT may not take units held for orders; a delivery is limited by the shelf only. */
+export async function applyMovement(tx: Prisma.TransactionClient, p: Product, m: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord, guardReserved = true) {
+  const delta = m.type === 'IN' ? m.quantity : -m.quantity;
+  const floor = m.type === 'OUT' ? m.quantity : 0;
+  // conditional update: guards against two concurrent withdrawals (or a withdrawal and a reservation) both passing the in-memory check
+  const updated = await tx.$executeRaw`UPDATE "Product" SET quantity = quantity + ${delta}
+    WHERE id = ${p.id} AND quantity - ${guardReserved ? Prisma.sql`reserved` : Prisma.sql`0`} >= ${floor}`;
+  if (updated === 0) throw new AppError('STOCK_CHANGED');
+  await tx.movement.create({
+    data: { productId: p.id, type: m.type, quantity: m.quantity, note: m.note, actorId: audit.actor.id, actorEmail: audit.actor.email },
+  });
+  await tx.auditEntry.create({ data: auditData(audit) });
 }
 
 /** ProcessedWebhook key that marks an order delivered or cancelled. */
@@ -53,7 +67,7 @@ export class PrismaProductRepository extends ProductRepository {
     try {
       await this.db.$transaction([
         this.db.product.create({
-          data: { id: p.id, sku: p.sku, name: p.name, quantity: p.quantity, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location },
+          data: { id: p.id, sku: p.sku, name: p.name, quantity: p.quantity, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location, price: p.price, cost: p.cost },
         }),
         this.db.auditEntry.create({ data: auditData(audit) }),
       ]);
@@ -66,7 +80,7 @@ export class PrismaProductRepository extends ProductRepository {
 
   async update(p: Product, audit: AuditRecord) {
     await this.db.$transaction([
-      this.db.product.update({ where: { id: p.id }, data: { name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location } }),
+      this.db.product.update({ where: { id: p.id }, data: { name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location, price: p.price, cost: p.cost } }),
       this.db.auditEntry.create({ data: auditData(audit) }),
     ]);
   }
@@ -109,7 +123,7 @@ export class PrismaProductRepository extends ProductRepository {
   }
 
   async saveMovement(p: Product, m: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord) {
-    await this.db.$transaction((tx) => this.applyMovement(tx, p, m, audit));
+    await this.db.$transaction((tx) => applyMovement(tx, p, m, audit));
   }
 
   async isEventProcessed(eventSeq: string) {
@@ -142,7 +156,7 @@ export class PrismaProductRepository extends ProductRepository {
       }
       await tx.reservation.deleteMany({ where: { orderId } });
       for (const l of deliveries) {
-        if (l.quantity > 0) await this.applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit, false);
+        if (l.quantity > 0) await applyMovement(tx, l.product, { type: 'OUT', quantity: l.quantity, note: l.note }, l.audit, false);
         else await tx.auditEntry.create({ data: auditData(l.audit) });
       }
       return 'saved' as const;
@@ -164,20 +178,6 @@ export class PrismaProductRepository extends ProductRepository {
       if (hasPrismaCode(e, 'P2002')) return 'duplicate';
       throw e;
     }
-  }
-
-  /** `guardReserved`: a user's OUT may not take units held for orders; a delivery is limited by the shelf only. */
-  private async applyMovement(tx: Prisma.TransactionClient, p: Product, m: { type: MovementType; quantity: number; note?: string }, audit: AuditRecord, guardReserved = true) {
-    const delta = m.type === 'IN' ? m.quantity : -m.quantity;
-    const floor = m.type === 'OUT' ? m.quantity : 0;
-    // conditional update: guards against two concurrent withdrawals (or a withdrawal and a reservation) both passing the in-memory check
-    const updated = await tx.$executeRaw`UPDATE "Product" SET quantity = quantity + ${delta}
-      WHERE id = ${p.id} AND quantity - ${guardReserved ? Prisma.sql`reserved` : Prisma.sql`0`} >= ${floor}`;
-    if (updated === 0) throw new AppError('STOCK_CHANGED');
-    await tx.movement.create({
-      data: { productId: p.id, type: m.type, quantity: m.quantity, note: m.note, actorId: audit.actor.id, actorEmail: audit.actor.email },
-    });
-    await tx.auditEntry.create({ data: auditData(audit) });
   }
 
   async findAuditEntries(limit: number) {

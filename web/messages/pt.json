@@ -11,7 +11,9 @@
     "language": "Idioma",
     "inventory": "Inventário",
     "main": "Principal",
-    "audit": "Auditoria"
+    "audit": "Auditoria",
+    "purchases": "Compras",
+    "suppliers": "Fornecedores"
   },
   "common": {
     "save": "Salvar",
@@ -75,7 +77,12 @@
     "maxAboveMin": "Deve ser maior que o mínimo.",
     "level": "Nível de estoque",
     "levelText": "{quantity} em estoque, mínimo {min}",
-    "skuInvalid": "Use de 3 a 32 letras, números ou hífens."
+    "skuInvalid": "Use de 3 a 32 letras, números ou hífens.",
+    "price": "Preço",
+    "cost": "Custo",
+    "margin": "Margem",
+    "moneyHint": "Opcional. Em R$, ex.: 49,90.",
+    "moneyInvalid": "Use um valor como 49,90."
   },
   "movements": {
     "title": "Histórico",
@@ -94,7 +101,7 @@
   },
   "users": {
     "title": "Usuários",
-    "subtitle": "Crie contas para a sua equipe. Operadores só podem registrar movimentações.",
+    "subtitle": "Crie contas para a sua equipe. Operadores registram movimentações, fornecedores e compras.",
     "email": "E-mail",
     "password": "Senha",
     "passwordHint": "Pelo menos 8 caracteres.",
@@ -135,11 +142,24 @@
     "MAX_QUANTITY_INVALID": "O estoque máximo deve ser um número inteiro maior que o mínimo ({min}).",
     "AI_NOT_CONFIGURED": "A análise de inventário não está ativada neste servidor.",
     "AI_FAILED": "A análise de inventário está indisponível agora. Tente mais tarde.",
-    "STOCK_UNAVAILABLE": "Os dados de estoque estão indisponíveis agora. Tente de novo em instantes."
+    "STOCK_UNAVAILABLE": "Os dados de estoque estão indisponíveis agora. Tente de novo em instantes.",
+    "PRICE_INVALID": "O preço deve ficar entre R$ 0,00 e R$ 100.000,00.",
+    "COST_INVALID": "O custo deve ficar entre R$ 0,00 e R$ 100.000,00.",
+    "SUPPLIER_NAME_REQUIRED": "O nome do fornecedor é obrigatório.",
+    "SUPPLIER_NAME_TAKEN": "O fornecedor {name} já existe.",
+    "SUPPLIER_DOCUMENT_INVALID": "CNPJ inválido: precisa de 14 dígitos com dígitos verificadores corretos.",
+    "SUPPLIER_HAS_ORDERS": "Este fornecedor tem pedidos de compra e não pode ser excluído.",
+    "SUPPLIER_NOT_FOUND": "Fornecedor não encontrado.",
+    "PURCHASE_ORDER_EMPTY": "Um pedido de compra precisa de pelo menos um item.",
+    "PURCHASE_ORDER_DUPLICATE_ITEM": "Cada produto só pode aparecer uma vez no pedido.",
+    "PURCHASE_ORDER_STATUS": "Este pedido mudou de status e não permite mais esta ação. Recarregue a página.",
+    "PURCHASE_NOTHING_TO_SUGGEST": "Nenhum produto está abaixo do mínimo, então não há o que comprar.",
+    "PURCHASE_ORDER_NOT_FOUND": "Pedido de compra não encontrado."
   },
   "alerts": {
     "lowStock": "{count, plural, one {# produto está} other {# produtos estão}} no mínimo ou abaixo dele.",
-    "review": "Ver inventário"
+    "review": "Ver inventário",
+    "suggestPurchase": "Sugerir compra"
   },
   "inventory": {
     "title": "Inventário",
@@ -166,7 +186,7 @@
   },
   "audit": {
     "title": "Auditoria",
-    "subtitle": "Os 100 eventos mais recentes de produtos, estoque e acessos, do mais novo ao mais antigo.",
+    "subtitle": "Os 100 eventos mais recentes de produtos, estoque, compras e acessos, do mais novo ao mais antigo.",
     "when": "Quando",
     "who": "Quem",
     "what": "O quê",
@@ -188,7 +208,73 @@
       "STOCK_RELEASED": "Reserva liberada",
       "USER_CREATED": "Usuário criado",
       "LOGIN_SUCCEEDED": "Acesso",
-      "LOGIN_FAILED": "Acesso negado"
+      "LOGIN_FAILED": "Acesso negado",
+      "SUPPLIER_CREATED": "Fornecedor criado",
+      "SUPPLIER_UPDATED": "Fornecedor alterado",
+      "SUPPLIER_DELETED": "Fornecedor excluído",
+      "PURCHASE_CREATED": "Compra criada",
+      "PURCHASE_UPDATED": "Compra editada",
+      "PURCHASE_ORDERED": "Compra enviada",
+      "PURCHASE_RECEIVED": "Compra recebida",
+      "PURCHASE_CANCELLED": "Compra cancelada"
+    },
+    "price": "preço",
+    "cost": "custo"
+  },
+  "suppliers": {
+    "title": "Fornecedores",
+    "new": "Novo fornecedor",
+    "edit": "Editar {name}",
+    "create": "Criar fornecedor",
+    "cancelEdit": "Voltar para novo fornecedor",
+    "name": "Nome",
+    "document": "CNPJ",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "optional": "Opcional.",
+    "documentInvalid": "Use 14 dígitos, ex.: 11.222.333/0001-81.",
+    "delete": "Excluir fornecedor",
+    "deleteConfirm": "Excluir este fornecedor? Não dá para desfazer.",
+    "empty": "Nenhum fornecedor ainda. Cadastre o primeiro no formulário acima."
+  },
+  "purchases": {
+    "title": "Compras",
+    "new": "Novo pedido de compra",
+    "suggest": "Sugerir compra",
+    "suggestHint": "Cria um rascunho com todo produto cujo disponível está abaixo do mínimo, na quantidade para chegar ao máximo (ou ao dobro do mínimo), pelo último custo.",
+    "suggesting": "Sugerindo…",
+    "supplier": "Fornecedor",
+    "pickSupplier": "Escolha um fornecedor",
+    "product": "Produto",
+    "pickProduct": "Escolha um produto",
+    "item": "Item {n}",
+    "addItem": "Adicionar item",
+    "removeItem": "Remover item {n}",
+    "needItem": "Adicione pelo menos um item.",
+    "unitCost": "Custo unitário",
+    "quantity": "Quantidade",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "createDraft": "Criar rascunho",
+    "number": "Número",
+    "status": "Status",
+    "created": "Criado em",
+    "items": "Itens",
+    "empty": "Nenhum pedido de compra ainda. Crie um acima ou deixe o sistema sugerir a partir do estoque baixo.",
+    "noSuppliers": "Compras precisam de um fornecedor antes.",
+    "addSupplier": "Cadastrar fornecedor",
+    "back": "Todas as compras",
+    "order": "Pedido de compra #{number}",
+    "send": "Enviar ao fornecedor",
+    "receive": "Receber mercadoria",
+    "receiveConfirm": "Receber este pedido? Cada item entra no estoque e o custo é atualizado.",
+    "cancel": "Cancelar pedido",
+    "cancelConfirm": "Cancelar este pedido de compra?",
+    "statuses": {
+      "DRAFT": "Rascunho",
+      "ORDERED": "Enviado",
+      "RECEIVED": "Recebido",
+      "CANCELLED": "Cancelado"
     }
   }
 }

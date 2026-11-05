@@ -13,17 +13,34 @@ import {
   RegisterMovementUseCase,
   UpdateProductUseCase,
 } from './application/product.use-cases';
+import { PurchasingRepository } from './application/purchasing-repository';
+import {
+  ChangePurchaseOrderStatusUseCase,
+  CreatePurchaseOrderUseCase,
+  CreateSupplierUseCase,
+  DeleteSupplierUseCase,
+  GetPurchaseOrderUseCase,
+  ListPurchaseOrdersUseCase,
+  ListSuppliersUseCase,
+  ReceivePurchaseOrderUseCase,
+  SuggestPurchaseOrderUseCase,
+  UpdatePurchaseOrderItemsUseCase,
+  UpdateSupplierUseCase,
+} from './application/purchasing.use-cases';
 import { ApplyOrderEventUseCase } from './application/webhook.use-cases';
 import { AuditController } from './http/audit.controller';
 import { MovementController } from './http/movement.controller';
 import { ProductController } from './http/product.controller';
+import { PurchaseOrderController } from './http/purchase-order.controller';
+import { SupplierController } from './http/supplier.controller';
 import { WebhookController } from './http/webhook.controller';
 import { PrismaProductRepository } from './infra/prisma-product.repository';
+import { PrismaPurchasingRepository } from './infra/prisma-purchasing.repository';
 import { PrismaService } from './infra/prisma.service';
 
 @Module({
   imports: [CoreModule],
-  controllers: [ProductController, MovementController, AuditController, WebhookController],
+  controllers: [ProductController, MovementController, AuditController, WebhookController, SupplierController, PurchaseOrderController],
   providers: [
     PrismaService,
     { provide: ProductRepository, useClass: PrismaProductRepository },
@@ -38,6 +55,18 @@ import { PrismaService } from './infra/prisma.service';
     MovementTotalsUseCase,
     ListAuditUseCase,
     ApplyOrderEventUseCase,
+    { provide: PurchasingRepository, useClass: PrismaPurchasingRepository },
+    CreateSupplierUseCase,
+    ListSuppliersUseCase,
+    UpdateSupplierUseCase,
+    DeleteSupplierUseCase,
+    CreatePurchaseOrderUseCase,
+    SuggestPurchaseOrderUseCase,
+    ListPurchaseOrdersUseCase,
+    GetPurchaseOrderUseCase,
+    UpdatePurchaseOrderItemsUseCase,
+    ChangePurchaseOrderStatusUseCase,
+    ReceivePurchaseOrderUseCase,
   ],
 })
 export class AppModule {}

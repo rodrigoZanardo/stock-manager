@@ -11,7 +11,9 @@
     "language": "Language",
     "inventory": "Inventory",
     "main": "Main",
-    "audit": "Audit"
+    "audit": "Audit",
+    "purchases": "Purchases",
+    "suppliers": "Suppliers"
   },
   "common": {
     "save": "Save",
@@ -75,7 +77,12 @@
     "maxAboveMin": "Must be greater than the minimum.",
     "level": "Stock level",
     "levelText": "{quantity} in stock, minimum {min}",
-    "skuInvalid": "Use 3-32 letters, digits or dashes."
+    "skuInvalid": "Use 3-32 letters, digits or dashes.",
+    "price": "Price",
+    "cost": "Cost",
+    "margin": "Margin",
+    "moneyHint": "Optional. In R$, e.g. 49,90.",
+    "moneyInvalid": "Use an amount like 49,90."
   },
   "movements": {
     "title": "History",
@@ -94,7 +101,7 @@
   },
   "users": {
     "title": "Users",
-    "subtitle": "Create accounts for your team. Operators can only register stock movements.",
+    "subtitle": "Create accounts for your team. Operators register movements, suppliers and purchases.",
     "email": "Email",
     "password": "Password",
     "passwordHint": "At least 8 characters.",
@@ -135,11 +142,24 @@
     "MAX_QUANTITY_INVALID": "Maximum quantity must be a whole number greater than the minimum ({min}).",
     "AI_NOT_CONFIGURED": "Inventory analysis is not enabled on this server.",
     "AI_FAILED": "Inventory analysis is unavailable right now. Try again later.",
-    "STOCK_UNAVAILABLE": "Stock data is unavailable right now. Try again in a moment."
+    "STOCK_UNAVAILABLE": "Stock data is unavailable right now. Try again in a moment.",
+    "PRICE_INVALID": "Price must be between R$ 0,00 and R$ 100.000,00.",
+    "COST_INVALID": "Cost must be between R$ 0,00 and R$ 100.000,00.",
+    "SUPPLIER_NAME_REQUIRED": "Supplier name is required.",
+    "SUPPLIER_NAME_TAKEN": "Supplier {name} already exists.",
+    "SUPPLIER_DOCUMENT_INVALID": "This CNPJ is not valid: it needs 14 digits with correct check digits.",
+    "SUPPLIER_HAS_ORDERS": "This supplier has purchase orders and cannot be deleted.",
+    "SUPPLIER_NOT_FOUND": "Supplier not found.",
+    "PURCHASE_ORDER_EMPTY": "A purchase order needs at least one item.",
+    "PURCHASE_ORDER_DUPLICATE_ITEM": "Each product can appear only once in a purchase order.",
+    "PURCHASE_ORDER_STATUS": "This purchase order changed status and no longer allows this. Reload the page.",
+    "PURCHASE_NOTHING_TO_SUGGEST": "No product is below its minimum, so there is nothing to buy.",
+    "PURCHASE_ORDER_NOT_FOUND": "Purchase order not found."
   },
   "alerts": {
     "lowStock": "{count, plural, one {# product is} other {# products are}} at or below the minimum.",
-    "review": "Review inventory"
+    "review": "Review inventory",
+    "suggestPurchase": "Suggest purchase"
   },
   "inventory": {
     "title": "Inventory",
@@ -166,7 +186,7 @@
   },
   "audit": {
     "title": "Audit",
-    "subtitle": "The latest 100 product, stock and sign-in events, newest first.",
+    "subtitle": "The latest 100 product, stock, purchase and sign-in events, newest first.",
     "when": "When",
     "who": "Who",
     "what": "What",
@@ -188,7 +208,73 @@
       "STOCK_RELEASED": "Reservation released",
       "USER_CREATED": "User created",
       "LOGIN_SUCCEEDED": "Sign-in",
-      "LOGIN_FAILED": "Failed sign-in"
+      "LOGIN_FAILED": "Failed sign-in",
+      "SUPPLIER_CREATED": "Supplier created",
+      "SUPPLIER_UPDATED": "Supplier updated",
+      "SUPPLIER_DELETED": "Supplier deleted",
+      "PURCHASE_CREATED": "Purchase created",
+      "PURCHASE_UPDATED": "Purchase edited",
+      "PURCHASE_ORDERED": "Purchase sent",
+      "PURCHASE_RECEIVED": "Purchase received",
+      "PURCHASE_CANCELLED": "Purchase cancelled"
+    },
+    "price": "price",
+    "cost": "cost"
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "new": "New supplier",
+    "edit": "Edit {name}",
+    "create": "Create supplier",
+    "cancelEdit": "Back to new supplier",
+    "name": "Name",
+    "document": "CNPJ",
+    "email": "Email",
+    "phone": "Phone",
+    "optional": "Optional.",
+    "documentInvalid": "Use 14 digits, e.g. 11.222.333/0001-81.",
+    "delete": "Delete supplier",
+    "deleteConfirm": "Delete this supplier? This cannot be undone.",
+    "empty": "No suppliers yet. Add the first one with the form above."
+  },
+  "purchases": {
+    "title": "Purchases",
+    "new": "New purchase order",
+    "suggest": "Suggest purchase",
+    "suggestHint": "Creates a draft with every product whose available units are below the minimum, enough to reach the maximum (or twice the minimum), at the last cost.",
+    "suggesting": "Suggesting…",
+    "supplier": "Supplier",
+    "pickSupplier": "Choose a supplier",
+    "product": "Product",
+    "pickProduct": "Choose a product",
+    "item": "Item {n}",
+    "addItem": "Add item",
+    "removeItem": "Remove item {n}",
+    "needItem": "Add at least one item.",
+    "unitCost": "Unit cost",
+    "quantity": "Quantity",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "createDraft": "Create draft",
+    "number": "Number",
+    "status": "Status",
+    "created": "Created",
+    "items": "Items",
+    "empty": "No purchase orders yet. Create one above or let the system suggest one from low stock.",
+    "noSuppliers": "Purchases need a supplier first.",
+    "addSupplier": "Add a supplier",
+    "back": "All purchases",
+    "order": "Purchase order #{number}",
+    "send": "Send to supplier",
+    "receive": "Receive goods",
+    "receiveConfirm": "Receive this order? Every item is added to stock and its cost updated.",
+    "cancel": "Cancel order",
+    "cancelConfirm": "Cancel this purchase order?",
+    "statuses": {
+      "DRAFT": "Draft",
+      "ORDERED": "Ordered",
+      "RECEIVED": "Received",
+      "CANCELLED": "Cancelled"
     }
   }
 }

@@ -26,7 +26,7 @@ export class ListProductsUseCase {
   }
 }
 
-const editable = (p: Product) => ({ name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location });
+const editable = (p: Product) => ({ name: p.name, minQuantity: p.minQuantity, maxQuantity: p.maxQuantity, location: p.location, price: p.price, cost: p.cost });
 
 async function getOrThrow(repo: ProductRepository, id: string): Promise<Product> {
   const product = await repo.findById(id);

@@ -8,7 +8,7 @@ export const isRole = (value: string | undefined): value is Role => ROLES.some((
 export type MovementType = 'IN' | 'OUT';
 
 export type StockStatus = 'LOW' | 'OK' | 'OVER';
-export type Product = { id: string; sku: string; name: string; quantity: number; reserved: number; available: number; minQuantity: number; maxQuantity: number | null; location: string | null; status: StockStatus };
+export type Product = { id: string; sku: string; name: string; quantity: number; reserved: number; available: number; minQuantity: number; maxQuantity: number | null; location: string | null; price: number | null; cost: number | null; status: StockStatus };
 export type InventoryRow = {
   productId: string;
   sku: string;
@@ -33,11 +33,25 @@ export type Dashboard = {
   recent: (Movement & { productId: string; productName: string })[];
 };
 
-export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_RESERVED' | 'STOCK_RELEASED';
+export type StockAuditAction = 'PRODUCT_CREATED' | 'PRODUCT_UPDATED' | 'PRODUCT_DELETED' | 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_RESERVED' | 'STOCK_RELEASED'
+  | 'SUPPLIER_CREATED' | 'SUPPLIER_UPDATED' | 'SUPPLIER_DELETED'
+  | 'PURCHASE_CREATED' | 'PURCHASE_UPDATED' | 'PURCHASE_ORDERED' | 'PURCHASE_RECEIVED' | 'PURCHASE_CANCELLED';
 export type AuthAuditAction = 'USER_CREATED' | 'LOGIN_SUCCEEDED' | 'LOGIN_FAILED';
 export type AuditEntry<A> = { id: string; action: A; productId: string | null; details: Record<string, unknown>; actorEmail: string | null; createdAt: string };
 
-export type ProductInput = { name: string; minQuantity: number; maxQuantity: number | null; location: string | null };
+export type ProductInput = { name: string; minQuantity: number; maxQuantity: number | null; location: string | null; price: number | null; cost: number | null };
+
+export type SupplierInput = { name: string; document: string | null; email: string | null; phone: string | null };
+export type Supplier = SupplierInput & { id: string };
+export const PURCHASE_STATUSES = ['DRAFT', 'ORDERED', 'RECEIVED', 'CANCELLED'] as const;
+export type PurchaseStatus = (typeof PURCHASE_STATUSES)[number];
+/** Money in cents. */
+export type PurchaseItemInput = { productId: string; quantity: number; unitCost: number };
+export type PurchaseOrder = {
+  id: string; number: number; supplierId: string; supplierName: string; status: PurchaseStatus;
+  items: (PurchaseItemInput & { sku: string; name: string })[]; total: number; createdAt: string;
+};
+export type PurchaseChange = 'send' | 'cancel' | 'receive';
 export type UserRecord = { id: string; email: string; role: Role };
 
 export const TOKEN_COOKIE = 'token';
@@ -88,6 +102,8 @@ async function send(path: string, init: { method?: string; body?: unknown } = {}
 
 /** Path segment for an id from the client: "../users" must stay one segment, not climb the path. */
 const productPath = (id: string) => `/products/${encodeURIComponent(id)}`;
+const supplierPath = (id: string) => `/suppliers/${encodeURIComponent(id)}`;
+const orderPath = (id: string) => `/purchase-orders/${encodeURIComponent(id)}`;
 
 async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   return (await send(path, init)).json();
@@ -124,6 +140,22 @@ export const api = {
   },
   move: (id: string, body: { type: MovementType; quantity: number; note?: string }) =>
     request<Product>(`${productPath(id)}/movements`, { method: 'POST', body }),
+  suppliers: () => request<Supplier[]>('/suppliers'),
+  createSupplier: (body: SupplierInput) => request<Supplier>('/suppliers', { method: 'POST', body }),
+  updateSupplier: (id: string, body: SupplierInput) => request<Supplier>(supplierPath(id), { method: 'PUT', body }),
+  deleteSupplier: async (id: string) => {
+    await send(supplierPath(id), { method: 'DELETE' });
+  },
+  purchaseOrders: () => request<PurchaseOrder[]>('/purchase-orders'),
+  purchaseOrder: (id: string) => request<PurchaseOrder>(orderPath(id)),
+  createPurchaseOrder: (body: { supplierId: string; items: PurchaseItemInput[] }) =>
+    request<PurchaseOrder>('/purchase-orders', { method: 'POST', body }),
+  suggestPurchaseOrder: (supplierId: string) =>
+    request<PurchaseOrder>('/purchase-orders/suggest', { method: 'POST', body: { supplierId } }),
+  updatePurchaseOrder: (id: string, items: PurchaseItemInput[]) =>
+    request<PurchaseOrder>(orderPath(id), { method: 'PATCH', body: { items } }),
+  changePurchaseOrder: (id: string, change: PurchaseChange) =>
+    request<PurchaseOrder>(`${orderPath(id)}/${change}`, { method: 'POST' }),
   auditStock: () => request<AuditEntry<StockAuditAction>[]>('/audit/stock?limit=100'),
   auditAuth: () => request<AuditEntry<AuthAuditAction>[]>('/audit/auth?limit=100'),
 };
